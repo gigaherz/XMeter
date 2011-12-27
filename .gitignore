@@ -1,0 +1,10 @@
+/_ReSharper.XMeter
+/XMeter/bin
+/XMeter/obj
+/XMeter/publish
+/XMeterSetup/Debug
+/XMeterSetup/Release
+*.suo
+/XMeter.rar
+/XMeter1.0.0.1.exe
+/XMeter1.0.0.exe
