@@ -89,10 +89,10 @@
             "ComponentsUrl" = "8:"
                 "Items"
                 {
-                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Net.Framework.3.5.SP1"
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.0,Profile=Client"
                     {
-                    "Name" = "8:.NET Framework 3.5 SP1"
-                    "ProductCode" = "8:Microsoft.Net.Framework.3.5.SP1"
+                    "Name" = "8:Microsoft .NET Framework 4 Client Profile (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.0,Profile=Client"
                     }
                     "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:Microsoft.Windows.Installer.3.1"
                     {
@@ -122,7 +122,7 @@
                 {
                 "Name" = "8:.NET Framework"
                 "Message" = "8:[VSDNETMSG]"
-                "Version" = "8:3.5.30729"
+                "FrameworkVersion" = "8:.NETFramework,Version=v4.0,Profile=Client"
                 "AllowLaterVersions" = "11:FALSE"
                 "InstallUrl" = "8:http://go.microsoft.com/fwlink/?LinkId=76617"
                 }
@@ -149,7 +149,7 @@
             }
             "{3C67513D-01DD-4637-8A68-80971EB9504F}:_79CAB282DDEC456FB5C418143E913DB4"
             {
-            "DefaultLocation" = "8:[ProgramFilesFolder][Manufacturer]\\[ProductName]"
+            "DefaultLocation" = "8:[ProgramFilesFolder][ProductName]"
             "Name" = "8:#1925"
             "AlwaysCreate" = "11:FALSE"
             "Condition" = "8:"
@@ -198,19 +198,20 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:XMeter"
         "ProductCode" = "8:{64B7A676-0D11-4ABF-B8B0-B7656AB2DD5D}"
-        "PackageCode" = "8:{0FA85D89-471B-4BFD-B7E1-525AA5F9EC22}"
+        "PackageCode" = "8:{81BAB735-881F-49BF-8309-2C64361C1EF0}"
         "UpgradeCode" = "8:{95914089-930A-4BAA-845B-F8E0AFBB1C99}"
+        "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:TRUE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
         "ProductVersion" = "8:1.0.0"
-        "Manufacturer" = "8:Gigaherz Utilities"
+        "Manufacturer" = "8:David Quintana"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
         "Title" = "8:XMeter Setup"
         "Subject" = "8:"
-        "ARPCONTACT" = "8:Gigaherz Utilities"
+        "ARPCONTACT" = "8:David Quintana"
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:"
@@ -327,20 +328,6 @@
             "Transitive" = "11:FALSE"
             "Target" = "8:_B3EAE0B823AC47B2B8B76A93E33219E8"
             "Folder" = "8:_3511FC5F2727448A81D9877E0E0A0B5C"
-            "WorkingFolder" = "8:_79CAB282DDEC456FB5C418143E913DB4"
-            "Icon" = "8:_B3EAE0B823AC47B2B8B76A93E33219E8"
-            "Feature" = "8:"
-            }
-            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_BE35BB02234E499BB2CE63810B4A503F"
-            {
-            "Name" = "8:XMeter"
-            "Arguments" = "8:"
-            "Description" = "8:"
-            "ShowCmd" = "3:1"
-            "IconIndex" = "3:32512"
-            "Transitive" = "11:FALSE"
-            "Target" = "8:_B3EAE0B823AC47B2B8B76A93E33219E8"
-            "Folder" = "8:_EE80A1B5B9C747519D6ACEF882E4EF3D"
             "WorkingFolder" = "8:_79CAB282DDEC456FB5C418143E913DB4"
             "Icon" = "8:_B3EAE0B823AC47B2B8B76A93E33219E8"
             "Feature" = "8:"
@@ -774,7 +761,7 @@
             }
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_B3EAE0B823AC47B2B8B76A93E33219E8"
             {
-            "SourcePath" = "8:..\\XMeter\\obj\\Debug\\XMeter.exe"
+            "SourcePath" = "8:..\\XMeter\\obj\\Release\\XMeter.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_79CAB282DDEC456FB5C418143E913DB4"
