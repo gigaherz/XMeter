@@ -8,3 +8,7 @@
 /XMeter.rar
 /XMeter1.0.0.1.exe
 /XMeter1.0.0.exe
+/*.user
+/XMeter/*.DotSettings
+/XMeter/*.user
+/XMeter/*.ReSharper

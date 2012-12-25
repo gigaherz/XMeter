@@ -1,105 +1,42 @@
-﻿//#define SHRINK
-
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Drawing;
+using System.Linq;
+using System.Threading;
 using System.Windows.Forms;
-using System.Management;
-using Microsoft.Win32;
 
 namespace XMeter
 {
     public partial class XMeterDisplay : Form
     {
-        private const int MaxSecondSpan = 3600;
-
-        readonly List<Tuple<ulong,ulong,ulong>> timeStamps = new List<Tuple<ulong, ulong, ulong>>();
-
-        ulong lastMinSpeed;
-        ulong lastMaxSpeed;
-
-        readonly Dictionary<string, ulong> prevLastSend = new Dictionary<string, ulong>();
-        readonly Dictionary<string, ulong> prevLastRecv = new Dictionary<string, ulong>();
-        readonly ManagementObjectSearcher searcher =
-            new ManagementObjectSearcher(
-                "SELECT Name, BytesReceivedPerSec, BytesSentPerSec, Timestamp_Sys100NS"+
-                " FROM Win32_PerfRawData_Tcpip_NetworkInterface");
-
-        int currentSeconds;
-
         bool firstUpdate = true;
 
-        DateTime lastCheck;
-
-
-        bool startMinimized;
-        bool startOnLogon;
+        private bool startMinimized = true;
+        private bool startOnLogon = true;
         bool realClosing;
+
+        private readonly Meter meter = new Meter();
 
         public XMeterDisplay()
         {
             InitializeComponent();
 
-            UpdateSpeeds(TimeSpan.FromSeconds(1));
-
-            currentSeconds = 0;
-
+            meter.UpdateSpeeds();
+            
             ReadSettings();
         }
 
         private void ReadSettings()
         {
-            try
-            {
-                var value = (int)Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "StartMinimized", -1);
-                if (value < 0)
-                    Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "StartMinimized", 0);
-                startMinimized = value > 0;
-            }
-            catch (Exception)
-            {
-                startMinimized = false;
-                Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "StartMinimized", 0);
-            }
-
-            try
-            {
-                var value = (int)Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "WindowOpacity", -1);
-                if (value < 0)
-                {
-                    Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "WindowOpacity", 100);
-                    value = 100;
-                }
-                Opacity = value / 100.0;
-            }
-            catch (Exception)
-            {
-                Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "WindowOpacity", 100);
-            }
-
-            //object path = Registry.GetValue("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Current Version\\Run","XMeter");
-
-            //if (path != null)
-            //{
-            //    if(Application.ExecutablePath == (string)path)
-            //        startOnLogon = true;
-            //}
+            startMinimized = RegistrySettings.GetConfig(RegistrySettings.ConfigKey.StartMinimized, startMinimized);
+            Opacity = RegistrySettings.GetConfig(RegistrySettings.ConfigKey.WindowOpacity, (int)(Opacity*255)) / 255.0;
+            startOnLogon = RegistrySettings.StartupState;
         }
 
         private void WriteSettings()
         {
-            Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "StartMinimized", startMinimized ? 1 : 0);
-            Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "WindowOpacity", (int)(Opacity*100));
-
-            //object path = Registry.CurrentUser.GetValue("Software\\Microsoft\\Windows\\Current Version\\Run","XMeter");
-
-            //if ((path != null) && !startOnLogon)
-            //{
-            //    Registry.DeleteValue("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Current Version\\Run","XMeter");
-            //}
-
-            //if(startOnLogon)
-            //    Registry.SetValue("HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\Current Version\\Run","XMeter", Application.ExecutablePath);
+            RegistrySettings.SetConfig(RegistrySettings.ConfigKey.StartMinimized, startMinimized);
+            RegistrySettings.SetConfig(RegistrySettings.ConfigKey.WindowOpacity, (int)(Opacity * 255));
+            RegistrySettings.StartupState = startOnLogon;
         }
 
         private void Form1_Load(object sender, EventArgs e)
@@ -108,13 +45,15 @@ namespace XMeter
             lbMaxSpeed.Text = "0 Bytes/s";
             lbStartTime.Text = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
             lbEndTime.Text = DateTime.Now.ToString("HH:mm:ss");
-            lbUpSpeed.Text = "0 Bytes/s";
-            lbDownSpeed.Text = "0 Bytes/s";
+
             UpdateLayout();
+
             trayIcon.Icon = Properties.Resources.U0D0;
             trayIcon.Text = "Initializing...";
+
             startMinimizedToolStripMenuItem.Checked = startMinimized;
             startOnLogonToolStripMenuItem.Checked = startOnLogon;
+
             if (startMinimized)
                 Visible = false;
         }
@@ -122,7 +61,7 @@ namespace XMeter
         private void UpdateLayout()
         {
             int lMargin = Math.Max(lbMaxSpeed.Width, lbMinSpeed.Width);
-            int bMargin = Math.Max(Math.Max(lbUpSpeed.Height, lbDownSpeed.Height), Math.Max(lbStartTime.Height, lbEndTime.Height));
+            int bMargin = Math.Max(lbStartTime.Height, lbEndTime.Height);
 
             int tSpace = ClientSize.Height - bMargin;
 
@@ -135,46 +74,15 @@ namespace XMeter
             int rSpace = ClientSize.Width - lMargin;
 
             picGraph.SetBounds(lMargin, 0, rSpace, tSpace);
-
-            int middle = lMargin + rSpace / 2;
-
-            lbUpSpeed.Location = new Point(middle - lbUpSpeed.Width, tSpace);
-            lbDownSpeed.Location = new Point(middle + 1, tSpace);
         }
 
         private void UpdateGraph()
         {
             picGraph.Refresh();
         }
-
-        private string FormatUSize(ulong bytes)
-        {
-            double dbytes = bytes;
-
-            if (bytes < 1024)
-                return bytes.ToString() + " Bytes/s";
-
-            dbytes /= 1024.0;
-
-            if (dbytes < 1024)
-                return dbytes.ToString("#0.00") + " KB/s";
-
-            dbytes /= 1024.0;
-
-            if (dbytes < 1024)
-                return dbytes.ToString("#0.00") + " MBs/s";
-
-            dbytes /= 1024.0;
-
-            // Maybe... someday...
-            return dbytes.ToString("#0.00") + " GBs/s";
-        }
-
+        
         private void tmrUpdate_Tick(object sender, EventArgs e)
         {
-            DateTime currentCheck = DateTime.Now;
-            TimeSpan timeDiff = (currentCheck - lastCheck);
-
             if (firstUpdate)
             {
                 firstUpdate = false;
@@ -183,25 +91,30 @@ namespace XMeter
                     Visible = false;
             }
 
-            if (timeDiff < TimeSpan.FromSeconds(1))
-                return;
+            if(!backgroundWorker1.IsBusy)
+                backgroundWorker1.RunWorkerAsync();
+        }
 
-            UpdateSpeeds(timeDiff);
+        private void backgroundWorker1_DoWork(object sender, System.ComponentModel.DoWorkEventArgs e)
+        {
+            meter.UpdateSpeeds();
+        }
 
-            double spanSeconds = (timeStamps[currentSeconds - 1].Item1 - timeStamps[0].Item1) / 10000000.0;
+        private void backgroundWorker1_RunWorkerCompleted(object sender, System.ComponentModel.RunWorkerCompletedEventArgs e)
+        {
+            var last = meter.DataPoints.Last();
+            var first = meter.DataPoints.First();
 
-            lbMinSpeed.Text = FormatUSize(lastMinSpeed);
-            lbMaxSpeed.Text = FormatUSize(lastMaxSpeed);
-            lbStartTime.Text = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
-            lbEndTime.Text = currentCheck.ToString("HH:mm:ss");
-            lbUpSpeed.Text = FormatUSize(timeStamps[currentSeconds - 1].Item3);
-            lbDownSpeed.Text = FormatUSize(timeStamps[currentSeconds - 1].Item2);
+            lbMinSpeed.Text = meter.LastMinSpeed.ToString();
+            lbMaxSpeed.Text = meter.LastMaxSpeed.ToString();
+            lbStartTime.Text = first.TimeStamp.ToString("HH:mm:ss");
+            lbEndTime.Text = last.TimeStamp.ToString("HH:mm:ss");
 
             UpdateLayout();
             UpdateGraph();
 
-            bool sendActivity = (timeStamps[currentSeconds - 1].Item3 > 0);
-            bool recvActivity = (timeStamps[currentSeconds - 1].Item2 > 0);
+            bool sendActivity = (last.UploadSpeed.Bytes > 0);
+            bool recvActivity = (last.DownloadSpeed.Bytes > 0);
 
             if (sendActivity && recvActivity)
             {
@@ -220,160 +133,81 @@ namespace XMeter
                 trayIcon.Icon = Properties.Resources.U0D0;
             }
 
-            trayIcon.Text = "Send: " + lbUpSpeed.Text + "; Receive: " + lbDownSpeed.Text;
+            string title = string.Format("Up: {0}; Down: {1}", last.UploadSpeed, last.DownloadSpeed);
 
-            lastCheck = currentCheck;
+            Text = string.Format("XMeter - {0}", title);
+            trayIcon.Text = title;
         }
-
-        private void UpdateSpeeds(TimeSpan timeDiff)
-        {
-            ulong bytesReceivedTotal = 0;
-            ulong bytesSentTotal = 0;
-
-            ulong maxStamp = 0;
-
-            foreach (ManagementObject adapter in searcher.Get())
-            {
-                var name = (string)adapter["Name"];
-                var sent = adapter["BytesReceivedPerSec"];
-                var recv = adapter["BytesSentPerSec"];
-                var stamp = adapter["Timestamp_Sys100NS"];
-
-                maxStamp = Math.Max(maxStamp,(ulong)stamp);
-
-                // XP seems to have uint32's there, but win7 has uint64's
-                ulong curRecv;
-                if (recv is uint)
-                    curRecv = (uint)recv;
-                else
-                    curRecv = (ulong)recv;
-
-                ulong lstRecv = curRecv;
-
-                if (prevLastRecv.ContainsKey(name))
-                    lstRecv = (uint)prevLastRecv[name];
-
-                bytesReceivedTotal += (curRecv - lstRecv);
-                prevLastRecv[name] = curRecv;
-
-                // XP seems to have uint32's there, but win7 has uint64's
-                ulong curSend;
-                if (recv is uint)
-                    curSend = (uint) sent;
-                else
-                    curSend = (ulong) sent;
-
-                ulong lstSend = curSend;
-
-                if (prevLastSend.ContainsKey(name))
-                    lstSend = (uint)prevLastSend[name];
-
-                bytesSentTotal += (curSend - lstSend);
-                prevLastSend[name] = curSend;
-            }
-
-            var bytesReceivedPerSec = (ulong)(bytesReceivedTotal / timeDiff.TotalSeconds);
-            var bytesSentPerSec = (ulong)(bytesSentTotal / timeDiff.TotalSeconds);
-
-            if (currentSeconds == MaxSecondSpan)
-            {
-                currentSeconds--;
-                for (int i = 0; i < currentSeconds; i++)
-                {
-                    timeStamps[i] = timeStamps[i + 1];
-                }
-            }
-
-            timeStamps[currentSeconds] = new Tuple<ulong, ulong, ulong>(maxStamp, bytesReceivedPerSec, bytesSentPerSec);
-            currentSeconds++;
-
-            ulong minSpeed = Math.Min(timeStamps[0].Item2, timeStamps[0].Item3);
-            ulong maxSpeed = Math.Max(timeStamps[0].Item2, timeStamps[0].Item3);
-
-            for (int i = 0; i < currentSeconds; i++)
-            {
-                minSpeed = Math.Min(minSpeed, Math.Min(timeStamps[i].Item2, timeStamps[i].Item3));
-                maxSpeed = Math.Max(maxSpeed, Math.Max(timeStamps[i].Item2, timeStamps[i].Item3));
-            }
-
-            lastMaxSpeed = maxSpeed;
-            lastMinSpeed = minSpeed;
-        }
-
         private void picGraph_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
             var gSize = picGraph.ClientSize;
 
-            int xOffset = 0;
-
-#if !SHRINK
-            int iOffset = 0;
-#endif
-
-            if (lastMaxSpeed <= lastMinSpeed)
+            if (meter.LastMaxSpeed <= meter.LastMinSpeed)
                 return;
 
-            if (gSize.Width > currentSeconds)
+            if (meter.DataPoints.Count == 0)
+                return;
+
+            var pb = new SolidBrush(Color.FromArgb(255, 48, 48, 255));
+            var pg = new SolidBrush(Color.FromArgb(255, 32, 255, 64));
+            var pr = new SolidBrush(Color.FromArgb(255, 255, 24, 32));
+
+            var tt = (meter.LastMaxSpeed - meter.LastMinSpeed).Bytes;
+
+            const int top = 0;
+            int bottom = gSize.Height - 1;
+
+            var last = meter.DataPoints.Last();
+
+            var xLast = gSize.Width;
+            ulong iMaxSend = last.UploadSpeed.Bytes;
+            ulong iMaxRecv = last.DownloadSpeed.Bytes;
+
+            foreach (var current in meter.DataPoints.Reverse())
             {
-                xOffset = gSize.Width - currentSeconds;
-                gSize.Width = currentSeconds;
-            }
+                var td = Math.Round((last.TimeStamp - current.TimeStamp).TotalSeconds) + 1;
+                var xCurrent = (int) Math.Round(gSize.Width - td, 0);
+                if (xCurrent < 0)
+                    break;
 
-#if !SHRINK
-            if (gSize.Width < currentSeconds)
-            {
-                iOffset = currentSeconds - gSize.Width;
-            }
-#endif
+                iMaxSend = Math.Max(current.UploadSpeed.Bytes, iMaxSend);
+                iMaxRecv = Math.Max(current.DownloadSpeed.Bytes, iMaxRecv);
 
-            int i = 0;
-            for (int x = 0; x < gSize.Width; x++)
-            {
-#if SHRINK
-                uint iTarget = (uint)Math.Min(currentSeconds, x * currentSeconds / GSize.Width);
-#endif
+                if(xCurrent == xLast)
+                    continue;
 
-#if SHRINK
-                ulong iMaxSend = lastMinSpeed;
-                ulong iMaxRecv = lastMinSpeed;
-                while ((i+iOffset) < iTarget)
-                {
-                    iMaxSend = Math.Max(iMaxSend, sendSpeeds[i]);
-                    iMaxRecv = Math.Max(iMaxRecv, recvSpeeds[i]);
-                    i++;
-                }
-#else
-                ulong iMaxSend = timeStamps[i + iOffset].Item3;
-                ulong iMaxRecv = timeStamps[i + iOffset].Item2;
-                i++;
-#endif
-
-                const int top = 0;
-                int bottom = gSize.Height;
-
-                var midBottom = bottom - (int)(iMaxSend * (uint)gSize.Height / (lastMaxSpeed - lastMinSpeed));
-                var midTop = top + (int)(iMaxRecv * (uint)gSize.Height / (lastMaxSpeed - lastMinSpeed));
-
-                var pb = new Pen(Color.FromArgb(255, 48, 48, 255));
-                var pg = new Pen(Color.FromArgb(255, 32, 255, 64));
-                var pr = new Pen(Color.FromArgb(255, 255, 24, 32));
+                var midBottom = bottom - (int)(iMaxSend * (uint)gSize.Height / tt);
+                var midTop = top + (int)(iMaxRecv * (uint)gSize.Height / tt);
 
                 if (midBottom < midTop)
                 {
-                    g.DrawLine(pg, xOffset + x, midTop, xOffset + x, midBottom);
+                    g.FillRectangle(pg, new Rectangle(
+                                   new Point(xCurrent, midTop),
+                                   new Size(xLast - xCurrent, midBottom - midTop)));
+                    
                     int t = midBottom;
                     midBottom = midTop;
                     midTop = t;
                 }
+                
+                g.FillRectangle(pb, new Rectangle(
+                    new Point(xCurrent, top),
+                    new Size(xLast - xCurrent, midTop - top)));
 
-                g.DrawLine(pb, xOffset + x, top, xOffset + x, midTop);
-                g.DrawLine(pr, xOffset + x, bottom, xOffset + x, midBottom);
+                g.FillRectangle(pr, new Rectangle(
+                    new Point(xCurrent, midBottom),
+                    new Size(xLast - xCurrent, bottom - midBottom)));
 
-                pr.Dispose();
-                pg.Dispose();
-                pb.Dispose();
+                iMaxSend = current.UploadSpeed.Bytes;
+                iMaxRecv = current.DownloadSpeed.Bytes;
+
+                xLast = xCurrent;
             }
+
+            pr.Dispose();
+            pg.Dispose();
+            pb.Dispose();
         }
 
         private void XMeterDisplay_Resize(object sender, EventArgs e)
@@ -414,8 +248,17 @@ namespace XMeter
 
         private void XMeterDisplay_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if ((e.CloseReason != CloseReason.UserClosing) || realClosing) 
+            if ((e.CloseReason != CloseReason.UserClosing) || realClosing)
+            {
+                while (backgroundWorker1.IsBusy)
+                {
+                    Thread.Sleep(100);
+                }
+
+                meter.Dispose();
+
                 return;
+            }
 
             e.Cancel = true;
             Visible = false;
@@ -424,6 +267,12 @@ namespace XMeter
         private void nearlyInvisibleToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Opacity = 0.10;
+            WriteSettings();
+        }
+
+        private void toolStripMenuItem3_Click(object sender, EventArgs e)
+        {
+            Opacity = 0.30;
             WriteSettings();
         }
 
@@ -445,10 +294,5 @@ namespace XMeter
             WriteSettings();
         }
 
-        private void toolStripMenuItem3_Click(object sender, EventArgs e)
-        {
-            Opacity = 0.30;
-            WriteSettings();
-        }
     }
 }

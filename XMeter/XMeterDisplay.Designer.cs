@@ -43,14 +43,13 @@
             this.startMinimizedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem2 = new System.Windows.Forms.ToolStripMenuItem();
             this.nearlyInvisibleToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
             this.seethroughToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.overlayedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.opaqueToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripMenuItem1 = new System.Windows.Forms.ToolStripSeparator();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.lbUpSpeed = new System.Windows.Forms.Label();
-            this.lbDownSpeed = new System.Windows.Forms.Label();
-            this.toolStripMenuItem3 = new System.Windows.Forms.ToolStripMenuItem();
+            this.backgroundWorker1 = new System.ComponentModel.BackgroundWorker();
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).BeginInit();
             this.trayMenu.SuspendLayout();
             this.SuspendLayout();
@@ -113,6 +112,7 @@
             // tmrUpdate
             // 
             this.tmrUpdate.Enabled = true;
+            this.tmrUpdate.Interval = 1000;
             this.tmrUpdate.Tick += new System.EventHandler(this.tmrUpdate_Tick);
             // 
             // trayIcon
@@ -152,7 +152,6 @@
             this.startOnLogonToolStripMenuItem.Name = "startOnLogonToolStripMenuItem";
             this.startOnLogonToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
             this.startOnLogonToolStripMenuItem.Text = "Start on &Logon";
-            this.startOnLogonToolStripMenuItem.Visible = false;
             this.startOnLogonToolStripMenuItem.Click += new System.EventHandler(this.startOnLogonToolStripMenuItem_Click);
             // 
             // startMinimizedToolStripMenuItem
@@ -177,28 +176,35 @@
             // nearlyInvisibleToolStripMenuItem
             // 
             this.nearlyInvisibleToolStripMenuItem.Name = "nearlyInvisibleToolStripMenuItem";
-            this.nearlyInvisibleToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.nearlyInvisibleToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
             this.nearlyInvisibleToolStripMenuItem.Text = "10%";
             this.nearlyInvisibleToolStripMenuItem.Click += new System.EventHandler(this.nearlyInvisibleToolStripMenuItem_Click);
+            // 
+            // toolStripMenuItem3
+            // 
+            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
+            this.toolStripMenuItem3.Size = new System.Drawing.Size(116, 22);
+            this.toolStripMenuItem3.Text = "30%";
+            this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
             // 
             // seethroughToolStripMenuItem
             // 
             this.seethroughToolStripMenuItem.Name = "seethroughToolStripMenuItem";
-            this.seethroughToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.seethroughToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
             this.seethroughToolStripMenuItem.Text = "50%";
             this.seethroughToolStripMenuItem.Click += new System.EventHandler(this.seethroughToolStripMenuItem_Click);
             // 
             // overlayedToolStripMenuItem
             // 
             this.overlayedToolStripMenuItem.Name = "overlayedToolStripMenuItem";
-            this.overlayedToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
-            this.overlayedToolStripMenuItem.Text = "80%";
+            this.overlayedToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
+            this.overlayedToolStripMenuItem.Text = "90%";
             this.overlayedToolStripMenuItem.Click += new System.EventHandler(this.overlayedToolStripMenuItem_Click);
             // 
             // opaqueToolStripMenuItem
             // 
             this.opaqueToolStripMenuItem.Name = "opaqueToolStripMenuItem";
-            this.opaqueToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
+            this.opaqueToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
             this.opaqueToolStripMenuItem.Text = "Opaque";
             this.opaqueToolStripMenuItem.Click += new System.EventHandler(this.opaqueToolStripMenuItem_Click);
             // 
@@ -214,40 +220,16 @@
             this.exitToolStripMenuItem.Text = "&Exit";
             this.exitToolStripMenuItem.Click += new System.EventHandler(this.exitToolStripMenuItem_Click);
             // 
-            // lbUpSpeed
+            // backgroundWorker1
             // 
-            this.lbUpSpeed.AutoSize = true;
-            this.lbUpSpeed.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lbUpSpeed.Location = new System.Drawing.Point(106, 101);
-            this.lbUpSpeed.Name = "lbUpSpeed";
-            this.lbUpSpeed.Size = new System.Drawing.Size(37, 15);
-            this.lbUpSpeed.TabIndex = 5;
-            this.lbUpSpeed.Text = "label1";
-            // 
-            // lbDownSpeed
-            // 
-            this.lbDownSpeed.AutoSize = true;
-            this.lbDownSpeed.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lbDownSpeed.Location = new System.Drawing.Point(149, 101);
-            this.lbDownSpeed.Name = "lbDownSpeed";
-            this.lbDownSpeed.Size = new System.Drawing.Size(37, 15);
-            this.lbDownSpeed.TabIndex = 6;
-            this.lbDownSpeed.Text = "label2";
-            // 
-            // toolStripMenuItem3
-            // 
-            this.toolStripMenuItem3.Name = "toolStripMenuItem3";
-            this.toolStripMenuItem3.Size = new System.Drawing.Size(152, 22);
-            this.toolStripMenuItem3.Text = "30%";
-            this.toolStripMenuItem3.Click += new System.EventHandler(this.toolStripMenuItem3_Click);
+            this.backgroundWorker1.DoWork += new System.ComponentModel.DoWorkEventHandler(this.backgroundWorker1_DoWork);
+            this.backgroundWorker1.RunWorkerCompleted += new System.ComponentModel.RunWorkerCompletedEventHandler(this.backgroundWorker1_RunWorkerCompleted);
             // 
             // XMeterDisplay
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(306, 124);
-            this.Controls.Add(this.lbDownSpeed);
-            this.Controls.Add(this.lbUpSpeed);
             this.Controls.Add(this.lbMaxSpeed);
             this.Controls.Add(this.lbMinSpeed);
             this.Controls.Add(this.lbEndTime);
@@ -260,8 +242,8 @@
             this.ShowInTaskbar = false;
             this.Text = "XMeter Status display";
             this.TopMost = true;
-            this.Load += new System.EventHandler(this.Form1_Load);
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.XMeterDisplay_FormClosing);
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.Resize += new System.EventHandler(this.XMeterDisplay_Resize);
             ((System.ComponentModel.ISupportInitialize)(this.picGraph)).EndInit();
             this.trayMenu.ResumeLayout(false);
@@ -286,14 +268,13 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator1;
         private System.Windows.Forms.ToolStripMenuItem startMinimizedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem startOnLogonToolStripMenuItem;
-        private System.Windows.Forms.Label lbUpSpeed;
-        private System.Windows.Forms.Label lbDownSpeed;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem2;
         private System.Windows.Forms.ToolStripMenuItem nearlyInvisibleToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem seethroughToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem overlayedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem opaqueToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toolStripMenuItem3;
+        private System.ComponentModel.BackgroundWorker backgroundWorker1;
     }
 }
 
