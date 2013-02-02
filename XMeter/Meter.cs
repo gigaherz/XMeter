@@ -56,7 +56,7 @@ namespace XMeter
             foreach (var ts in DataPoints)
             {
                 minSpeed = DataSize.Min(minSpeed, DataSize.Min(ts.DownloadSpeed, ts.UploadSpeed));
-                maxSpeed = DataSize.Max(maxSpeed, DataSize.Max(ts.UploadSpeed, ts.UploadSpeed));
+                maxSpeed = DataSize.Max(maxSpeed, DataSize.Max(ts.DownloadSpeed, ts.UploadSpeed));
             }
 
             LastMaxSpeed = maxSpeed;
