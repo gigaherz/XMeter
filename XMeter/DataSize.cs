@@ -143,7 +143,7 @@ namespace XMeter
             dbytes /= 1024.0;
 
             if (dbytes < 1024)
-                return string.Format("{0:0.00} GB/s", dbytes);
+                return string.Format("{0:0.00} MB/s", dbytes);
 
             dbytes /= 1024.0;
 
