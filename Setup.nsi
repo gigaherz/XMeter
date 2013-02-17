@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "XMeter"
-!define PRODUCT_VERSION "1.1.2"
+!define PRODUCT_VERSION "1.2"
 !define PRODUCT_PUBLISHER "David Quintana"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\XMeter.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"

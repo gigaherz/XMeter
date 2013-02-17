@@ -15,7 +15,7 @@ namespace XMeter
         {
             get
             {
-                return DataPoints.First().TimeStamp - DataPoints.Last().TimeStamp;
+                return DataPoints.Last().TimeStamp - DataPoints.First().TimeStamp;
             }
         }
 
@@ -33,6 +33,17 @@ namespace XMeter
         {
             searcher.Options.UseAmendedQualifiers = false;
             searcher.Options.Rewindable = false;
+#if DEBUG
+            lock (DataPoints)
+            {
+                DateTime dt = DateTime.Now.AddSeconds(-MaxSecondSpan);
+                while (DataPoints.Count < MaxSecondSpan)
+                {
+                    DataPoints.Enqueue(new DataPoint(dt, 0, 0));
+                    dt = dt.AddSeconds(1);
+                }
+            }
+#endif
         }
 
         public void UpdateSpeeds()
@@ -53,10 +64,13 @@ namespace XMeter
             var minSpeed = DataSize.MaxValue;
             var maxSpeed = DataSize.MinValue;
 
-            foreach (var ts in DataPoints)
+            lock (DataPoints)
             {
-                minSpeed = DataSize.Min(minSpeed, DataSize.Min(ts.DownloadSpeed, ts.UploadSpeed));
-                maxSpeed = DataSize.Max(maxSpeed, DataSize.Max(ts.DownloadSpeed, ts.UploadSpeed));
+                foreach (var ts in DataPoints)
+                {
+                    minSpeed = DataSize.Min(minSpeed, DataSize.Min(ts.DownloadSpeed, ts.UploadSpeed));
+                    maxSpeed = DataSize.Max(maxSpeed, DataSize.Max(ts.DownloadSpeed, ts.UploadSpeed));
+                }
             }
 
             LastMaxSpeed = maxSpeed;
@@ -65,9 +79,12 @@ namespace XMeter
 
         private void RemoveOldDataPoints()
         {
-            while (TotalSpan.TotalSeconds > MaxSecondSpan && DataPoints.Count > 1)
+            lock (DataPoints)
             {
-                DataPoints.Dequeue();
+                while (TotalSpan.TotalSeconds > MaxSecondSpan && DataPoints.Count > 1)
+                {
+                    DataPoints.Dequeue();
+                }
             }
         }
 
@@ -104,7 +121,10 @@ namespace XMeter
                 bytesSentPerSec += (ulong) ((curSend - prevSend)/elapsed);
             }
 
-            DataPoints.Enqueue(new DataPoint(currentTime, bytesReceivedPerSec, bytesSentPerSec));
+            lock (DataPoints)
+            {
+                DataPoints.Enqueue(new DataPoint(currentTime, bytesReceivedPerSec, bytesSentPerSec));
+            }
         }
 
         public void Dispose()

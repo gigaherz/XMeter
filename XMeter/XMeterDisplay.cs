@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
@@ -107,7 +108,6 @@ namespace XMeter
 
             lbMinSpeed.Text = meter.LastMinSpeed.ToString();
             lbMaxSpeed.Text = meter.LastMaxSpeed.ToString();
-            lbStartTime.Text = first.TimeStamp.ToString("HH:mm:ss");
             lbEndTime.Text = last.TimeStamp.ToString("HH:mm:ss");
 
             UpdateLayout();
@@ -138,6 +138,7 @@ namespace XMeter
             Text = string.Format("XMeter - {0}", title);
             trayIcon.Text = title;
         }
+
         private void picGraph_Paint(object sender, PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -158,18 +159,28 @@ namespace XMeter
             const int top = 0;
             int bottom = gSize.Height - 1;
 
-            var last = meter.DataPoints.Last();
+            List<DataPoint> dataPoints;
+            
+            lock (meter.DataPoints)
+            {
+                dataPoints = meter.DataPoints.Reverse().ToList();
+            }
+
+            var last = dataPoints.First();
 
             var xLast = gSize.Width;
             ulong iMaxSend = last.UploadSpeed.Bytes;
             ulong iMaxRecv = last.DownloadSpeed.Bytes;
 
-            foreach (var current in meter.DataPoints.Reverse())
+            var first = last;
+            foreach (var current in dataPoints)
             {
                 var td = Math.Round((last.TimeStamp - current.TimeStamp).TotalSeconds) + 1;
                 var xCurrent = (int) Math.Round(gSize.Width - td, 0);
                 if (xCurrent < 0)
                     break;
+
+                first = current;
 
                 iMaxSend = Math.Max(current.UploadSpeed.Bytes, iMaxSend);
                 iMaxRecv = Math.Max(current.DownloadSpeed.Bytes, iMaxRecv);
@@ -204,6 +215,8 @@ namespace XMeter
 
                 xLast = xCurrent;
             }
+
+            lbStartTime.Text = first.TimeStamp.ToString("HH:mm:ss");
 
             pr.Dispose();
             pg.Dispose();
