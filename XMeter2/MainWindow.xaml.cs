@@ -19,7 +19,21 @@ namespace XMeter2
 
         TaskbarIcon notificationIcon = new TaskbarIcon();
 
-        readonly LinkedList<Tuple<DateTime, ulong, ulong>> timeStamps = new LinkedList<Tuple<DateTime, ulong, ulong>>();
+        class TimeEntry
+        {
+            public readonly DateTime TimeStamp;
+            public readonly ulong UpBytes;
+            public readonly ulong DownBytes;
+
+            public TimeEntry(DateTime t, ulong u, ulong d)
+            {
+                TimeStamp = t;
+                UpBytes = u;
+                DownBytes = d;
+            }
+        }
+
+        readonly LinkedList<TimeEntry> timeStamps = new LinkedList<TimeEntry>();
 
         readonly Dictionary<string, ulong> prevLastSend = new Dictionary<string, ulong>();
         readonly Dictionary<string, ulong> prevLastRecv = new Dictionary<string, ulong>();
@@ -157,17 +171,17 @@ namespace XMeter2
             
             UpdateSpeeds();
 
-            double spanSeconds = (timeStamps.Last.Value.Item1 - timeStamps.First.Value.Item1).TotalSeconds;
+            double spanSeconds = (timeStamps.Last.Value.TimeStamp - timeStamps.First.Value.TimeStamp).TotalSeconds;
 
             lbMinSpeed.Content = FormatUSize(lastMinSpeed);
             lbMaxSpeed.Content = FormatUSize(lastMaxSpeed);
             lbStartTime.Content = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
             lbEndTime.Content = currentCheck.ToString("HH:mm:ss");
-            lbUpSpeed.Content = FormatUSize(timeStamps.Last.Value.Item3);
-            lbDownSpeed.Content = FormatUSize(timeStamps.Last.Value.Item2);
+            lbUpSpeed.Content = FormatUSize(timeStamps.Last.Value.UpBytes);
+            lbDownSpeed.Content = FormatUSize(timeStamps.Last.Value.DownBytes);
             
-            bool sendActivity = (timeStamps.Last.Value.Item3 > 0);
-            bool recvActivity = (timeStamps.Last.Value.Item2 > 0);
+            bool sendActivity = (timeStamps.Last.Value.UpBytes > 0);
+            bool recvActivity = (timeStamps.Last.Value.DownBytes > 0);
 
             if (sendActivity && recvActivity)
             {
@@ -245,22 +259,22 @@ namespace XMeter2
                 bytesSentPerSec += (ulong)(diffSend / diffSeconds);
             }
 
-            timeStamps.AddLast(new Tuple<DateTime, ulong, ulong>(maxStamp, bytesReceivedPerSec, bytesSentPerSec));
+            timeStamps.AddLast(new TimeEntry(maxStamp, bytesSentPerSec, bytesReceivedPerSec));
 
-            var totalSpan = timeStamps.Last.Value.Item1 - timeStamps.First.Value.Item1;
+            var totalSpan = timeStamps.Last.Value.TimeStamp - timeStamps.First.Value.TimeStamp;
             while (totalSpan.TotalSeconds > MaxSecondSpan && timeStamps.Count > 1)
             {
                 timeStamps.RemoveFirst();
-                totalSpan = timeStamps.Last.Value.Item1 - timeStamps.First.Value.Item1;
+                totalSpan = timeStamps.Last.Value.TimeStamp - timeStamps.First.Value.TimeStamp;
             }
 
-            var minSpeed = Math.Min(timeStamps.First.Value.Item2, timeStamps.First.Value.Item3);
-            var maxSpeed = Math.Max(timeStamps.First.Value.Item2, timeStamps.First.Value.Item3);
+            var minSpeed = Math.Min(timeStamps.First.Value.UpBytes, timeStamps.First.Value.DownBytes);
+            var maxSpeed = Math.Max(timeStamps.First.Value.UpBytes, timeStamps.First.Value.DownBytes);
 
             foreach (var ts in timeStamps)
             {
-                minSpeed = Math.Min(minSpeed, Math.Min(ts.Item2, ts.Item3));
-                maxSpeed = Math.Max(maxSpeed, Math.Max(ts.Item2, ts.Item3));
+                minSpeed = Math.Min(minSpeed, Math.Min(ts.UpBytes, ts.DownBytes));
+                maxSpeed = Math.Max(maxSpeed, Math.Max(ts.UpBytes, ts.DownBytes));
             }
 
             lastMaxSpeed = maxSpeed;
@@ -287,22 +301,22 @@ namespace XMeter2
             double bottom = gSize.Height - 1;
 
             double xStart = gSize.Width - 1;
-            var tStart = timeStamps.Last.Value.Item1;
+            var tStart = timeStamps.Last.Value.TimeStamp;
             double xLast = xStart + 1;
-            ulong iMaxSend = timeStamps.Last.Value.Item3;
-            ulong iMaxRecv = timeStamps.Last.Value.Item2;
+            ulong iMaxSend = timeStamps.Last.Value.UpBytes;
+            ulong iMaxRecv = timeStamps.Last.Value.DownBytes;
 
             picGraph.Children.Clear();
 
             for (var current = timeStamps.Last; current != null; current = current.Previous)
             {
-                double td = Math.Round((tStart - current.Value.Item1).TotalSeconds);
+                double td = Math.Round((tStart - current.Value.TimeStamp).TotalSeconds);
                 double xCurrent = (xStart - td);
                 if (xCurrent < 0)
                     break;
 
-                iMaxSend = Math.Max(current.Value.Item3, iMaxSend);
-                iMaxRecv = Math.Max(current.Value.Item2, iMaxRecv);
+                iMaxSend = Math.Max(current.Value.UpBytes, iMaxSend);
+                iMaxRecv = Math.Max(current.Value.DownBytes, iMaxRecv);
 
                 if (xCurrent == xLast)
                     continue;
@@ -326,8 +340,8 @@ namespace XMeter2
                 MakeCanvasRectangle(xCurrent, midBottom,
                     xLast - xCurrent, bottom - midBottom, pb);
 
-                iMaxSend = current.Value.Item3;
-                iMaxRecv = current.Value.Item2;
+                iMaxSend = current.Value.UpBytes;
+                iMaxRecv = current.Value.DownBytes;
 
                 xLast = xCurrent;
             }
