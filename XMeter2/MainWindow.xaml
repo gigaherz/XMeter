@@ -7,54 +7,46 @@
         xmlns:tb="http://www.hardcodet.net/taskbar"
         mc:Ignorable="d"
         Title="" WindowStyle="None" ResizeMode = "CanResize" ShowInTaskbar="False" Height="240" Width="480"  FontSize="0.12in"
-        Closing="Window_Closing" SizeChanged="Window_SizeChanged" Deactivated="Window_Deactivated">
+        SizeChanged="Window_SizeChanged"
+        Closing="Window_Closing" Deactivated="Window_Deactivated">
     <Window.ContextMenu>
         <ContextMenu>
-            <MenuItem Header="Start on Logon" IsCheckable="True" Name="mnuStartOnLogon" Click="StartOnLogon_Click"/>
-            <MenuItem Header="Transparency" Name="mnuTransparency">
-                <MenuItem Header="10" Click="Opacity10_Click"/>
-                <MenuItem Header="30" Click="Opacity30_Click"/>
-                <MenuItem Header="50" Click="Opacity50_Click"/>
-                <MenuItem Header="90" Click="Opacity90_Click"/>
-                <MenuItem Header="Opaque" Click="Opaque_Click"/>
-            </MenuItem>
-            <Separator/>
             <MenuItem Header="Exit" Click="Exit_Click"/>
         </ContextMenu>
     </Window.ContextMenu>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="auto"/>
-            <ColumnDefinition Width="1*"/>
-            <ColumnDefinition Width="auto"/>
-            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="2*"/>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="3*"/>
+            <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
-        <Label x:Name="lbMaxSpeed" Content="0 Bytes/s" Padding="4,2" />
-        <Label x:Name="lbMinSpeed" Content="0 Bytes/s" Padding="4,2" Grid.Row="2" />
-
-        <Border Grid.Column="1" Margin="0" Grid.RowSpan="3" Grid.ColumnSpan="4">
-            <Canvas Name="picGraph" Background="Black" />
-        </Border>
-        <Label x:Name="lbStartTime" Content="Start Time" Padding="0,2" Grid.Column="1" Grid.Row="3" />
-        <Label x:Name="lbEndTime" Content="End time" Padding="0,2,4,2" Grid.Column="3" Grid.Row="3" HorizontalContentAlignment="Right" />
-
-        <Border Grid.Row="3" Grid.Column="2" BorderBrush="Black" BorderThickness="1">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="auto"/>
-                    <ColumnDefinition Width="auto"/>
-                </Grid.ColumnDefinitions>
-                <Label x:Name="lbUpSpeed" Content="0 Bytes/s" Padding="2" Margin="0,0,3,0" HorizontalContentAlignment="Right" />
-                <Label x:Name="lbDownSpeed" Content="0 Bytes/s" Padding="2" Margin="3,0,0,0" Grid.Column="1" />
-            </Grid>
-        </Border>
-
+        <Border Grid.Column="1" Margin="0" Grid.ColumnSpan="4">
+            <Canvas Name="picGraph" Background="Black" ClipToBounds="True"/>
+        </Border><Image />
+        <Label x:Name="lbStartTime" Content="Start Time" Padding="0,2" Grid.Column="1" Grid.Row="1" />
+        <Label Padding="2" Margin="0,0,4,0"  Grid.Row="1" Grid.Column="2" HorizontalContentAlignment="Right" >
+            <Label.Content>
+                <TextBlock>
+                    <Run x:Name="lbUpSpeed" Text="0 B/s" />
+                    <Image Source="Resources/Up.png" Width="14px" Height="14px" />
+                </TextBlock>
+            </Label.Content>
+        </Label>
+        <Label Padding="2" Margin="4,0,0,0" Grid.Row="1" Grid.Column="3" >
+            <Label.Content>
+                <TextBlock>
+                    <Image Source="Resources/Down.png" Width="14px" Height="14px" />
+                    <Run x:Name="lbDownSpeed" Text="0 B/s" />
+                </TextBlock>
+            </Label.Content>
+        </Label>
+        <Label x:Name="lbEndTime" Content="End time" Padding="0,2,4,2" Grid.Column="4" Grid.Row="1" HorizontalContentAlignment="Right" />
     </Grid>
 </Window>

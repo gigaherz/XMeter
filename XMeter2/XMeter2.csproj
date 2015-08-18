@@ -58,8 +58,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="NetTracker.cs" />
     <Compile Include="RelayCommand.cs" />
     <Compile Include="SettingsManager.cs" />
+    <Compile Include="Util.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -107,6 +109,10 @@
     <None Include="Resources\U0D1.ico" />
     <None Include="Resources\U1D0.ico" />
     <None Include="Resources\U1D1.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\Down.png" />
+    <Resource Include="Resources\Up.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
