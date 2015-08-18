@@ -4,6 +4,11 @@
 /XMeter/publish
 /XMeterSetup/Debug
 /XMeterSetup/Release
+/XMeter2/bin/Debug
+/XMeter2/bin/Release
+/XMeter2/obj/Debug
+/XMeter2/obj/Release
+/packages
 /*.rar
 /*.exe
 *.suo
