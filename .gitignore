@@ -1,8 +1,12 @@
-/_ReSharper.*
+/_ReSharper.XMeter
 /XMeter/bin
 /XMeter/obj
+/XMeter/publish
+/XMeterSetup/Debug
+/XMeterSetup/Release
+/*.rar
+/*.exe
 *.suo
 *.user
 *.DotSettings
 *.ReSharper
-/*.exe
