@@ -32,6 +32,8 @@ namespace XMeter2
         ulong lastMaxDown;
 
         DateTime lastCheck;
+
+        Tooltip tip = new Tooltip();
         
         DispatcherTimer timer = new DispatcherTimer();
 
@@ -48,7 +50,8 @@ namespace XMeter2
             notificationIcon.ToolTipText = "Initializing...";
             notificationIcon.ContextMenu = ContextMenu;
             notificationIcon.LeftClickCommand = new RelayCommand(NotificationIcon_LeftClick);
-            
+            notificationIcon.TrayToolTip = tip;
+
             timer.Interval = TimeSpan.FromSeconds(1);
             timer.Tick += Timer_Tick;
             timer.IsEnabled = true;
@@ -100,6 +103,8 @@ namespace XMeter2
             lbEndTime.Content = currentCheck.ToString("HH:mm:ss");
             lbUpSpeed.Text = up;
             lbDownSpeed.Text = down;
+            tip.lbUpSpeed.Text = up;
+            tip.lbDownSpeed.Text = down;
 
             notificationIcon.ToolTipText = string.Format("Send: {0}; Receive: {1}", up, down);
 

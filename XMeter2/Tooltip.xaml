@@ -1,0 +1,35 @@
+﻿<UserControl x:Class="XMeter2.Tooltip"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:XMeter2"
+             mc:Ignorable="d" 
+             Background="{x:Static SystemColors.InfoBrush}"
+             Foreground="{x:Static SystemColors.InfoTextBrush}"
+             BorderBrush="{x:Static SystemColors.WindowFrameBrush}"
+             BorderThickness="1px" MinWidth="6cm"
+             d:DesignHeight="20">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+        <Label Padding="2" Margin="0,0,4,0"  HorizontalContentAlignment="Right" >
+            <Label.Content>
+                <TextBlock>
+                    <Run x:Name="lbUpSpeed" Text="0 B/s" />
+                    <Image Source="Resources/Up.png" Width="14px" Height="14px" />
+                </TextBlock>
+            </Label.Content>
+        </Label>
+        <Label Padding="2" Margin="4,0,0,0" Grid.Column="1" >
+            <Label.Content>
+                <TextBlock>
+                    <Image Source="Resources/Down.png" Width="14px" Height="14px" />
+                    <Run x:Name="lbDownSpeed" Text="0 B/s" />
+                </TextBlock>
+            </Label.Content>
+        </Label>
+    </Grid>
+</UserControl>
