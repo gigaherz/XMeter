@@ -31,7 +31,30 @@
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
             <tb:TaskbarIcon.TrayToolTip>
-                <local:Tooltip x:Name="Tooltip" UpLabel="{Binding UpLabel}" DownLabel="{Binding DownLabel}"></local:Tooltip>
+                <ToolTip Padding="2">
+                    <Grid MinWidth="5cm">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding UpSpeed}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.ico" Stretch="None" SnapsToDevicePixels="True" />
+                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding DownSpeed}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                    </Grid>
+                </ToolTip>
             </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
 
@@ -39,30 +62,41 @@
             <Canvas Name="picGraph" Background="Black" ClipToBounds="True"/>
         </Border>
 
-        <Label Content="{Binding StartTime}" Padding="0,2" Grid.Column="1" Grid.Row="1" />
-        <Label Content="{Binding EndTime}" Padding="0,2,4,2" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Right" />
+        <Label Content="{Binding StartTime}" Padding="4,2" Grid.Column="1" Grid.Row="1" />
+        <Label Content="{Binding EndTime}" Padding="4,2" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Right" />
 
         <Grid Grid.Row="1" Grid.Column="2" MinWidth="5cm">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <Label Padding="2" Margin="0,0,4,0"  HorizontalContentAlignment="Right" >
+            <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
                 <Label.Content>
                     <TextBlock>
-                        <Run Text="{Binding UpLabel}" />
-                        <Image Source="Resources/Up.png" Width="14px" Height="14px" />
+                        <Run Text="{Binding UpSpeed}" />
                     </TextBlock>
                 </Label.Content>
             </Label>
-            <Label Padding="2" Margin="4,0,0,0" Grid.Column="1" >
+            <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.ico" Stretch="None" SnapsToDevicePixels="True" />
+            <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
                 <Label.Content>
                     <TextBlock>
-                        <Image Source="Resources/Down.png" Width="14px" Height="14px" />
-                        <Run Text="{Binding DownLabel}" />
+                        <Run Text="{Binding DownSpeed}" />
                     </TextBlock>
                 </Label.Content>
             </Label>
         </Grid>
+        <!--        
+            <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.ico" Stretch="None" SnapsToDevicePixels="True" />
+            <Canvas Grid.Column="1" VerticalAlignment="Center" Width="16" Height="16" SnapsToDevicePixels="True">
+                <Path Data="M 0,15 0,0 15,0 Z" Fill="#000000" />
+                <Path Data="M 1,12.35 1,1 12.35,1 Z" Fill="#FFFFFF" />
+                <Path Data="M 2,9.7 2,2 9.7,2 Z" Fill="#FF0000" />
+                <Path Data="M 16,1 16,16 1,16 Z" Fill="#000000" />
+                <Path Data="M 15,3.65 15,15 3.65,15"  Fill="#FFFFFF" />
+                <Path Data="M 14,6.3 14,14 6.3,14 Z" Fill="#008CFF" />
+            </Canvas>
+        -->
     </Grid>
 </Window>

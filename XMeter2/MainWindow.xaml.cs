@@ -23,11 +23,11 @@ namespace XMeter2
 
         private ulong _lastMaxUp;
         private ulong _lastMaxDown;
-        private Icon _icon = Properties.Resources.U0D0;
+        private Icon _icon;
         private ICommand _leftClickCommand;
 
-        private string _upLabel = "0 B/s";
-        private string _downLabel = "0 B/s";
+        private string _upSpeed = "0 B/s";
+        private string _downSpeed = "0 B/s";
         private string _toolTipText = "Initializing...";
         private string _startTime = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
         private string _endTime = DateTime.Now.ToString("HH:mm:ss");
@@ -54,24 +54,24 @@ namespace XMeter2
             }
         }
 
-        public string UpLabel
+        public string UpSpeed
         {
-            get => _upLabel;
+            get => _upSpeed;
             set
             {
-                if (value == _upLabel) return;
-                _upLabel = value;
+                if (value == _upSpeed) return;
+                _upSpeed = value;
                 OnPropertyChanged();
             }
         }
 
-        public string DownLabel
+        public string DownSpeed
         {
-            get => _downLabel;
+            get => _downSpeed;
             set
             {
-                if (value == _downLabel) return;
-                _downLabel = value;
+                if (value == _downSpeed) return;
+                _downSpeed = value;
                 OnPropertyChanged();
             }
         }
@@ -122,18 +122,20 @@ namespace XMeter2
             _timer.Tick += Timer_Tick;
             _timer.IsEnabled = true;
 
-            _notificationIcon.ToolTip = new Tooltip() { UpLabel = "UP LABEL", DownLabel = "DOWN LABEL" };
-            
-            Visibility = Visibility.Hidden;
+            UpdateIcon(false, false);
 
             UpdateSpeeds();
+
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Hide));
         }
 
         private void NotificationIcon_LeftClick(object obj)
         {
+            if (IsVisible)
+                return;
             Left = SystemParameters.WorkArea.Width - Width - 8;
             Top = SystemParameters.WorkArea.Height - Height - 8;
-            Show();
+            ShowDialog();
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
@@ -159,7 +161,7 @@ namespace XMeter2
         
         private void Timer_Tick(object o, EventArgs e)
         {
-            if (IsVisible && !IsActive)
+            if (IsVisible && !Natives.ApplicationIsActivated())
             {
                 Hide();
                 return;
@@ -167,27 +169,25 @@ namespace XMeter2
 
             UpdateSpeeds();
 
-            var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
-            var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
-            var spanSeconds = Math.Max(upTime,downTime);
-
-            var up = Util.FormatUSize(_upPoints.Last.Value.Bytes);
-            var down = Util.FormatUSize(_downPoints.Last.Value.Bytes);
-
-            var currentCheck = DateTime.Now;
-            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
-            EndTime = currentCheck.ToString("HH:mm:ss");
-            UpLabel = up;
-            DownLabel = down;
-
-            ToolTipText = $"Send: {up}; Receive: {down}";
-
             var sendActivity = _upPoints.Last.Value.Bytes > 0;
             var recvActivity = _downPoints.Last.Value.Bytes > 0;
             UpdateIcon(sendActivity, recvActivity);
 
+            UpSpeed = Util.FormatUSize(_upPoints.Last.Value.Bytes);
+            DownSpeed = Util.FormatUSize(_downPoints.Last.Value.Bytes);
+
+            ToolTipText = $"Send: {Util.FormatUSize(_upPoints.Last.Value.Bytes)}; Receive: {Util.FormatUSize(_downPoints.Last.Value.Bytes)}";
+
             if (IsVisible)
             {
+                var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
+                var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
+                var spanSeconds = Math.Max(upTime,downTime);
+
+                var currentCheck = DateTime.Now;
+                StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
+                EndTime = currentCheck.ToString("HH:mm:ss");
+
                 UpdateGraph2();
             }
         }
@@ -214,9 +214,7 @@ namespace XMeter2
 
         private void UpdateSpeeds()
         {
-            ulong bytesSentPerSec;
-            ulong bytesReceivedPerSec;
-            DateTime maxStamp = NetTracker.UpdateNetwork(out bytesReceivedPerSec, out bytesSentPerSec);
+            var maxStamp = NetTracker.UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec);
 
             AddData(_upPoints, maxStamp, bytesSentPerSec);
             AddData(_downPoints, maxStamp, bytesReceivedPerSec);
@@ -263,7 +261,7 @@ namespace XMeter2
             if (elapsed > 0 && elapsed < picGraph.ActualWidth)
                 scale = picGraph.ActualWidth / elapsed;
 
-            var p = new Polygon();
+            var polygon = new Polygon();
             for (var current = points.Last; current != null; current = current.Previous)
             {
                 var td = (lastTime - current.Value.TimeStamp).TotalSeconds;
@@ -271,13 +269,13 @@ namespace XMeter2
                 var xx = right - td * scale;
                 var yy = current.Value.Bytes * picGraph.ActualHeight / max;
 
-                p.Points.Add(new Point(xx, up ? bottom - yy : yy));
+                polygon.Points.Add(new Point(xx, up ? bottom - yy : yy));
             }
 
-            p.Points.Add(new Point(right, up ? bottom : 0));
+            polygon.Points.Add(new Point(right, up ? bottom : 0));
 
-            p.Fill = new SolidColorBrush(Color.FromArgb(255, r, g, b));
-            picGraph.Children.Add(p);
+            polygon.Fill = new SolidColorBrush(Color.FromArgb(255, r, g, b));
+            picGraph.Children.Add(polygon);
         }
 
         private class TimeEntry
