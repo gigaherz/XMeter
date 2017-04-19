@@ -34,7 +34,7 @@ namespace XMeter2
 
         public string StartTime
         {
-            get { return _startTime; }
+            get => _startTime;
             set
             {
                 if (value == _startTime) return;
@@ -45,7 +45,7 @@ namespace XMeter2
 
         public string EndTime
         {
-            get { return _endTime; }
+            get => _endTime;
             set
             {
                 if (value == _endTime) return;
@@ -56,7 +56,7 @@ namespace XMeter2
 
         public string UpLabel
         {
-            get { return _upLabel; }
+            get => _upLabel;
             set
             {
                 if (value == _upLabel) return;
@@ -67,7 +67,7 @@ namespace XMeter2
 
         public string DownLabel
         {
-            get { return _downLabel; }
+            get => _downLabel;
             set
             {
                 if (value == _downLabel) return;
@@ -78,7 +78,7 @@ namespace XMeter2
 
         public string ToolTipText
         {
-            get { return _toolTipText; }
+            get => _toolTipText;
             private set
             {
                 if (value == _toolTipText) return;
@@ -89,7 +89,7 @@ namespace XMeter2
 
         public Icon NotificationIcon
         {
-            get { return _icon; }
+            get => _icon;
             set {
                 if (ReferenceEquals(_icon, value)) return;
                 _icon = value;
@@ -100,7 +100,7 @@ namespace XMeter2
 
         public ICommand LeftClickCommand
         {
-            get { return _leftClickCommand; }
+            get => _leftClickCommand;
             set
             {
                 if (ReferenceEquals(_leftClickCommand, value))

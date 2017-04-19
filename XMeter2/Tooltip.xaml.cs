@@ -15,7 +15,7 @@ namespace XMeter2
 
         public string UpLabel
         {
-            get { return GetValue(UpLabelProperty) as string; }
+            get => GetValue(UpLabelProperty) as string;
             set
             {
                 SetValue(UpLabelProperty, value);
@@ -25,7 +25,7 @@ namespace XMeter2
 
         public string DownLabel
         {
-            get { return GetValue(DownLabelProperty) as string; }
+            get => GetValue(DownLabelProperty) as string;
             set
             {
                 SetValue(DownLabelProperty, value);
