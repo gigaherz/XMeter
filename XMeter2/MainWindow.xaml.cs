@@ -1,60 +1,128 @@
-﻿using Hardcodet.Wpf.TaskbarNotification;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Color = System.Windows.Media.Color;
+using Point = System.Windows.Point;
 
 namespace XMeter2
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : INotifyPropertyChanged
     {
-        TaskbarIcon notificationIcon = new TaskbarIcon();
+        private readonly DispatcherTimer _timer = new DispatcherTimer();
 
-        class TimeEntry
+        private readonly LinkedList<TimeEntry> _upPoints = new LinkedList<TimeEntry>();
+        private readonly LinkedList<TimeEntry> _downPoints = new LinkedList<TimeEntry>();
+
+        private ulong _lastMaxUp;
+        private ulong _lastMaxDown;
+        private Icon _icon = Properties.Resources.U0D0;
+        private ICommand _leftClickCommand;
+
+        private string _upLabel = "0 B/s";
+        private string _downLabel = "0 B/s";
+        private string _toolTipText = "Initializing...";
+        private string _startTime = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
+        private string _endTime = DateTime.Now.ToString("HH:mm:ss");
+
+        public string StartTime
         {
-            public readonly DateTime TimeStamp;
-            public readonly ulong Bytes;
-
-            public TimeEntry(DateTime t, ulong b)
+            get { return _startTime; }
+            set
             {
-                TimeStamp = t;
-                Bytes = b;
+                if (value == _startTime) return;
+                _startTime = value;
+                OnPropertyChanged();
             }
         }
 
-        readonly LinkedList<TimeEntry> UpPoints = new LinkedList<TimeEntry>();
-        readonly LinkedList<TimeEntry> DownPoints = new LinkedList<TimeEntry>();
+        public string EndTime
+        {
+            get { return _endTime; }
+            set
+            {
+                if (value == _endTime) return;
+                _endTime = value;
+                OnPropertyChanged();
+            }
+        }
 
-        ulong lastMaxUp;
-        ulong lastMaxDown;
+        public string UpLabel
+        {
+            get { return _upLabel; }
+            set
+            {
+                if (value == _upLabel) return;
+                _upLabel = value;
+                OnPropertyChanged();
+            }
+        }
 
-        DateTime lastCheck;
+        public string DownLabel
+        {
+            get { return _downLabel; }
+            set
+            {
+                if (value == _downLabel) return;
+                _downLabel = value;
+                OnPropertyChanged();
+            }
+        }
 
-        Tooltip tip = new Tooltip();
-        
-        DispatcherTimer timer = new DispatcherTimer();
+        public string ToolTipText
+        {
+            get { return _toolTipText; }
+            private set
+            {
+                if (value == _toolTipText) return;
+                _toolTipText = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Icon NotificationIcon
+        {
+            get { return _icon; }
+            set {
+                if (ReferenceEquals(_icon, value)) return;
+                _icon = value;
+                _notificationIcon.Icon = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ICommand LeftClickCommand
+        {
+            get { return _leftClickCommand; }
+            set
+            {
+                if (ReferenceEquals(_leftClickCommand, value))
+                    return;
+                _leftClickCommand = value;
+                OnPropertyChanged();
+            }
+        }
 
         public MainWindow()
         {
+            LeftClickCommand = new RelayCommand(NotificationIcon_LeftClick);
+
             InitializeComponent();
             
             SettingsManager.ReadSettings();
 
-            lbStartTime.Content = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
-            lbEndTime.Content = DateTime.Now.ToString("HH:mm:ss");
+            _timer.Interval = TimeSpan.FromSeconds(1);
+            _timer.Tick += Timer_Tick;
+            _timer.IsEnabled = true;
 
-            notificationIcon.Icon = Properties.Resources.U0D0;
-            notificationIcon.ToolTipText = "Initializing...";
-            notificationIcon.ContextMenu = ContextMenu;
-            notificationIcon.LeftClickCommand = new RelayCommand(NotificationIcon_LeftClick);
-            notificationIcon.TrayToolTip = tip;
-
-            timer.Interval = TimeSpan.FromSeconds(1);
-            timer.Tick += Timer_Tick;
-            timer.IsEnabled = true;
+            _notificationIcon.ToolTip = new Tooltip() { UpLabel = "UP LABEL", DownLabel = "DOWN LABEL" };
             
             Visibility = Visibility.Hidden;
 
@@ -63,24 +131,27 @@ namespace XMeter2
 
         private void NotificationIcon_LeftClick(object obj)
         {
-            Visibility = Visibility.Visible;
             Left = SystemParameters.WorkArea.Width - Width - 8;
             Top = SystemParameters.WorkArea.Height - Height - 8;
-
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => Activate()));
+            Show();
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing(object sender, CancelEventArgs e)
         {
             e.Cancel = true;
-            Visibility = Visibility.Hidden;
+            Hide();
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
         {
-            Visibility = Visibility.Hidden;
+            Hide();
         }
-        
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            SettingsManager.WriteSettings();
+        }
+
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
@@ -88,51 +159,56 @@ namespace XMeter2
         
         private void Timer_Tick(object o, EventArgs e)
         {
-            DateTime currentCheck = DateTime.Now;
-            
+            if (IsVisible && !IsActive)
+            {
+                Hide();
+                return;
+            }
+
             UpdateSpeeds();
 
-            double spanSeconds =Math.Max(
-                (UpPoints.Last.Value.TimeStamp - UpPoints.First.Value.TimeStamp).TotalSeconds,
-                (DownPoints.Last.Value.TimeStamp - DownPoints.First.Value.TimeStamp).TotalSeconds);
+            var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
+            var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
+            var spanSeconds = Math.Max(upTime,downTime);
 
-            string up = Util.FormatUSize(UpPoints.Last.Value.Bytes);
-            string down = Util.FormatUSize(DownPoints.Last.Value.Bytes);
-            
-            lbStartTime.Content = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
-            lbEndTime.Content = currentCheck.ToString("HH:mm:ss");
-            lbUpSpeed.Text = up;
-            lbDownSpeed.Text = down;
-            tip.lbUpSpeed.Text = up;
-            tip.lbDownSpeed.Text = down;
+            var up = Util.FormatUSize(_upPoints.Last.Value.Bytes);
+            var down = Util.FormatUSize(_downPoints.Last.Value.Bytes);
 
-            notificationIcon.ToolTipText = string.Format("Send: {0}; Receive: {1}", up, down);
+            var currentCheck = DateTime.Now;
+            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
+            EndTime = currentCheck.ToString("HH:mm:ss");
+            UpLabel = up;
+            DownLabel = down;
 
-            bool sendActivity = (UpPoints.Last.Value.Bytes > 0);
-            bool recvActivity = (DownPoints.Last.Value.Bytes > 0);
+            ToolTipText = $"Send: {up}; Receive: {down}";
 
-            if (sendActivity && recvActivity)
-            {
-                notificationIcon.Icon = Properties.Resources.U1D1;
-            }
-            else if (sendActivity)
-            {
-                notificationIcon.Icon = Properties.Resources.U1D0;
-            }
-            else if (recvActivity)
-            {
-                notificationIcon.Icon = Properties.Resources.U0D1;
-            }
-            else
-            {
-                notificationIcon.Icon = Properties.Resources.U0D0;
-            }
-
-            lastCheck = currentCheck;
+            var sendActivity = _upPoints.Last.Value.Bytes > 0;
+            var recvActivity = _downPoints.Last.Value.Bytes > 0;
+            UpdateIcon(sendActivity, recvActivity);
 
             if (IsVisible)
             {
                 UpdateGraph2();
+            }
+        }
+
+        private void UpdateIcon(bool sendActivity, bool recvActivity)
+        {
+            if (sendActivity && recvActivity)
+            {
+                NotificationIcon = Properties.Resources.U1D1;
+            }
+            else if (sendActivity)
+            {
+                NotificationIcon = Properties.Resources.U1D0;
+            }
+            else if (recvActivity)
+            {
+                NotificationIcon = Properties.Resources.U0D1;
+            }
+            else
+            {
+                NotificationIcon = Properties.Resources.U0D0;
             }
         }
 
@@ -142,14 +218,14 @@ namespace XMeter2
             ulong bytesReceivedPerSec;
             DateTime maxStamp = NetTracker.UpdateNetwork(out bytesReceivedPerSec, out bytesSentPerSec);
 
-            AddData(UpPoints, maxStamp, bytesSentPerSec);
-            AddData(DownPoints, maxStamp, bytesReceivedPerSec);
+            AddData(_upPoints, maxStamp, bytesSentPerSec);
+            AddData(_downPoints, maxStamp, bytesReceivedPerSec);
 
-            lastMaxDown = DownPoints.Select(s => s.Bytes).Max();
-            lastMaxUp = UpPoints.Select(s => s.Bytes).Max();
+            _lastMaxDown = _downPoints.Select(s => s.Bytes).Max();
+            _lastMaxUp = _upPoints.Select(s => s.Bytes).Max();
         }
 
-        private void AddData(LinkedList<TimeEntry> points, DateTime maxStamp, ulong bytesSentPerSec)
+        private static void AddData(LinkedList<TimeEntry> points, DateTime maxStamp, ulong bytesSentPerSec)
         {
             points.AddLast(new TimeEntry(maxStamp, bytesSentPerSec));
 
@@ -165,10 +241,10 @@ namespace XMeter2
         {
             picGraph.Children.Clear();
 
-            var max = Math.Max(lastMaxDown, lastMaxUp);
+            var max = Math.Max(_lastMaxDown, _lastMaxUp);
 
-            BuildPolygon(UpPoints, max, 255, 24, 32, true);
-            BuildPolygon(DownPoints, max, 48, 48, 255,  false);
+            BuildPolygon(_upPoints, max, 255, 24, 32, true);
+            BuildPolygon(_downPoints, max, 48, 48, 255,  false);
         }
 
         private void BuildPolygon(LinkedList<TimeEntry> points, ulong max, byte r, byte g, byte b, bool up)
@@ -176,47 +252,51 @@ namespace XMeter2
             if (points.Count == 0)
                 return;
 
-            var p = new Polygon();
-                        
-            double bottom = picGraph.ActualHeight;
-            double right = picGraph.ActualWidth;
+            var bottom = picGraph.ActualHeight;
+            var right = picGraph.ActualWidth;
 
             var lastTime = points.Last.Value.TimeStamp;
 
-            double elapsed = (lastTime - points.First.Value.TimeStamp).TotalSeconds;
+            var elapsed = (lastTime - points.First.Value.TimeStamp).TotalSeconds;
 
-            double scale = 1.0;
+            var scale = 1.0;
             if (elapsed > 0 && elapsed < picGraph.ActualWidth)
                 scale = picGraph.ActualWidth / elapsed;
-            
+
+            var p = new Polygon();
             for (var current = points.Last; current != null; current = current.Previous)
             {
-                double td = (lastTime - current.Value.TimeStamp).TotalSeconds;
+                var td = (lastTime - current.Value.TimeStamp).TotalSeconds;
 
-                double xx = (right - td * scale);
+                var xx = right - td * scale;
+                var yy = current.Value.Bytes * picGraph.ActualHeight / max;
 
-                var y = current.Value.Bytes;
-                
-                var yy = (y * picGraph.ActualHeight / max);
-
-                if(up)
-                    yy = bottom - yy;
-
-                p.Points.Add(new Point(xx, yy));
+                p.Points.Add(new Point(xx, up ? bottom - yy : yy));
             }
 
-            if(up)
-                p.Points.Add(new Point(right, bottom));
-            else
-                p.Points.Add(new Point(right, 0));
+            p.Points.Add(new Point(right, up ? bottom : 0));
 
             p.Fill = new SolidColorBrush(Color.FromArgb(255, r, g, b));
             picGraph.Children.Add(p);
         }
 
-        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        private class TimeEntry
         {
-            SettingsManager.WriteSettings();
+            public readonly DateTime TimeStamp;
+            public readonly ulong Bytes;
+
+            public TimeEntry(DateTime t, ulong b)
+            {
+                TimeStamp = t;
+                Bytes = b;
+            }
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

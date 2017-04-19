@@ -8,12 +8,8 @@
         mc:Ignorable="d"
         Title="" WindowStyle="None" ResizeMode = "CanResize" ShowInTaskbar="False" Height="240" Width="480"  FontSize="0.12in"
         SizeChanged="Window_SizeChanged"
-        Closing="Window_Closing" Deactivated="Window_Deactivated">
-    <Window.ContextMenu>
-        <ContextMenu>
-            <MenuItem Header="Exit" Click="Exit_Click"/>
-        </ContextMenu>
-    </Window.ContextMenu>
+        Closing="Window_Closing" Deactivated="Window_Deactivated"
+        DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -26,12 +22,25 @@
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
+        <tb:TaskbarIcon x:Name="_notificationIcon"
+                        ToolTipText = "{Binding ToolTipText}"
+                        LeftClickCommand="{Binding LeftClickCommand}">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Exit" Click="Exit_Click"/>
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+            <tb:TaskbarIcon.TrayToolTip>
+                <local:Tooltip x:Name="Tooltip" UpLabel="{Binding UpLabel}" DownLabel="{Binding DownLabel}"></local:Tooltip>
+            </tb:TaskbarIcon.TrayToolTip>
+        </tb:TaskbarIcon>
+
         <Border Grid.Column="1" Margin="0" Grid.ColumnSpan="4">
             <Canvas Name="picGraph" Background="Black" ClipToBounds="True"/>
         </Border>
-        <Image />
-        <Label x:Name="lbStartTime" Content="Start Time" Padding="0,2" Grid.Column="1" Grid.Row="1" />
-        <Label x:Name="lbEndTime" Content="End time" Padding="0,2,4,2" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Right" />
+
+        <Label Content="{Binding StartTime}" Padding="0,2" Grid.Column="1" Grid.Row="1" />
+        <Label Content="{Binding EndTime}" Padding="0,2,4,2" Grid.Column="3" Grid.Row="1" HorizontalContentAlignment="Right" />
 
         <Grid Grid.Row="1" Grid.Column="2" MinWidth="5cm">
             <Grid.ColumnDefinitions>
@@ -41,7 +50,7 @@
             <Label Padding="2" Margin="0,0,4,0"  HorizontalContentAlignment="Right" >
                 <Label.Content>
                     <TextBlock>
-                        <Run x:Name="lbUpSpeed" Text="0 B/s" />
+                        <Run Text="{Binding UpLabel}" />
                         <Image Source="Resources/Up.png" Width="14px" Height="14px" />
                     </TextBlock>
                 </Label.Content>
@@ -50,7 +59,7 @@
                 <Label.Content>
                     <TextBlock>
                         <Image Source="Resources/Down.png" Width="14px" Height="14px" />
-                        <Run x:Name="lbDownSpeed" Text="0 B/s" />
+                        <Run Text="{Binding DownLabel}" />
                     </TextBlock>
                 </Label.Content>
             </Label>

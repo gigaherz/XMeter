@@ -1,28 +1,49 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using XMeter2.Annotations;
 
 namespace XMeter2
 {
-    /// <summary>
-    /// Interaction logic for Tooltip.xaml
-    /// </summary>
-    public partial class Tooltip : UserControl
+    public partial class Tooltip : INotifyPropertyChanged
     {
+        public static readonly DependencyProperty UpLabelProperty =
+                  DependencyProperty.Register("UpLabel", typeof(string), typeof(Tooltip));
+
+        public static readonly DependencyProperty DownLabelProperty =
+                  DependencyProperty.Register("DownLabel", typeof(string), typeof(Tooltip));
+
+        public string UpLabel
+        {
+            get { return GetValue(UpLabelProperty) as string; }
+            set
+            {
+                SetValue(UpLabelProperty, value);
+                OnPropertyChanged();
+            }
+        }
+
+        public string DownLabel
+        {
+            get { return GetValue(DownLabelProperty) as string; }
+            set
+            {
+                SetValue(DownLabelProperty, value);
+                OnPropertyChanged();
+            }
+        }
+
         public Tooltip()
         {
             InitializeComponent();
+        }
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

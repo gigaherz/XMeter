@@ -9,7 +9,8 @@
              Foreground="{x:Static SystemColors.InfoTextBrush}"
              BorderBrush="{x:Static SystemColors.WindowFrameBrush}"
              BorderThickness="1px" MinWidth="6cm"
-             d:DesignHeight="20">
+             d:DesignHeight="20"
+             DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -18,7 +19,7 @@
         <Label Padding="2" Margin="0,0,4,0"  HorizontalContentAlignment="Right" >
             <Label.Content>
                 <TextBlock>
-                    <Run x:Name="lbUpSpeed" Text="0 B/s" />
+                    <Run Text="{Binding UpLabel}" />
                     <Image Source="Resources/Up.png" Width="14px" Height="14px" />
                 </TextBlock>
             </Label.Content>
@@ -27,7 +28,7 @@
             <Label.Content>
                 <TextBlock>
                     <Image Source="Resources/Down.png" Width="14px" Height="14px" />
-                    <Run x:Name="lbDownSpeed" Text="0 B/s" />
+                    <Run Text="{Binding DownLabel}" />
                 </TextBlock>
             </Label.Content>
         </Label>
