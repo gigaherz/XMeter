@@ -9,6 +9,7 @@
         Title="" WindowStyle="None" ResizeMode = "CanResize" ShowInTaskbar="False" Height="240" Width="480"  FontSize="0.12in"
         SizeChanged="Window_SizeChanged"
         Closing="Window_Closing" Deactivated="Window_Deactivated"
+        UseLayoutRounding="True"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <Grid>
         <Grid.RowDefinitions>
@@ -22,16 +23,18 @@
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
-        <tb:TaskbarIcon x:Name="_notificationIcon"
+        <tb:TaskbarIcon x:Name="NotificationIcon"
                         ToolTipText = "{Binding ToolTipText}"
-                        LeftClickCommand="{Binding LeftClickCommand}">
+                        TrayPopup=""
+                        TrayLeftMouseDown="NotificationIcon_OnMouseLeftButtonDown"
+                        TrayLeftMouseUp="NotificationIcon_OnMouseLeftButtonUp">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
                     <MenuItem Header="Exit" Click="Exit_Click"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
             <tb:TaskbarIcon.TrayToolTip>
-                <ToolTip Padding="2">
+                <ToolTip Padding="2" UseLayoutRounding="True">
                     <Grid MinWidth="5cm">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
@@ -45,7 +48,7 @@
                                 </TextBlock>
                             </Label.Content>
                         </Label>
-                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.ico" Stretch="None" SnapsToDevicePixels="True" />
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
                         <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
                             <Label.Content>
                                 <TextBlock>
@@ -78,7 +81,7 @@
                     </TextBlock>
                 </Label.Content>
             </Label>
-            <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.ico" Stretch="None" SnapsToDevicePixels="True" />
+            <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
             <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
                 <Label.Content>
                     <TextBlock>

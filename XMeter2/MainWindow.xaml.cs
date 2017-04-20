@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Threading;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -24,7 +26,6 @@ namespace XMeter2
         private ulong _lastMaxUp;
         private ulong _lastMaxDown;
         private Icon _icon;
-        private ICommand _leftClickCommand;
 
         private string _upSpeed = "0 B/s";
         private string _downSpeed = "0 B/s";
@@ -87,33 +88,19 @@ namespace XMeter2
             }
         }
 
-        public Icon NotificationIcon
+        public Icon TrayIcon
         {
             get => _icon;
             set {
                 if (ReferenceEquals(_icon, value)) return;
                 _icon = value;
-                _notificationIcon.Icon = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public ICommand LeftClickCommand
-        {
-            get => _leftClickCommand;
-            set
-            {
-                if (ReferenceEquals(_leftClickCommand, value))
-                    return;
-                _leftClickCommand = value;
+                NotificationIcon.Icon = value;
                 OnPropertyChanged();
             }
         }
 
         public MainWindow()
         {
-            LeftClickCommand = new RelayCommand(NotificationIcon_LeftClick);
-
             InitializeComponent();
             
             SettingsManager.ReadSettings();
@@ -129,23 +116,37 @@ namespace XMeter2
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Hide));
         }
 
-        private void NotificationIcon_LeftClick(object obj)
+        bool preventReshow = true;
+        private void NotificationIcon_OnMouseLeftButtonDown(object sender, RoutedEventArgs routedEventArgs)
         {
+            Debug.WriteLine("DOWN!");
             if (IsVisible)
+                preventReshow = true;
+        }
+
+        private void NotificationIcon_OnMouseLeftButtonUp(object sender, RoutedEventArgs routedEventArgs)
+        {
+            Debug.WriteLine("UP!");
+            if (preventReshow)
+            {
+                preventReshow = false;
                 return;
+            }
             Left = SystemParameters.WorkArea.Width - Width - 8;
             Top = SystemParameters.WorkArea.Height - Height - 8;
-            ShowDialog();
+            Show();
         }
 
         private void Window_Closing(object sender, CancelEventArgs e)
         {
+            Debug.WriteLine("CLOSING!");
             e.Cancel = true;
             Hide();
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
         {
+            Debug.WriteLine("DEACTIVATED!");
             Hide();
         }
 
@@ -196,19 +197,19 @@ namespace XMeter2
         {
             if (sendActivity && recvActivity)
             {
-                NotificationIcon = Properties.Resources.U1D1;
+                TrayIcon = Properties.Resources.U1D1;
             }
             else if (sendActivity)
             {
-                NotificationIcon = Properties.Resources.U1D0;
+                TrayIcon = Properties.Resources.U1D0;
             }
             else if (recvActivity)
             {
-                NotificationIcon = Properties.Resources.U0D1;
+                TrayIcon = Properties.Resources.U0D1;
             }
             else
             {
-                NotificationIcon = Properties.Resources.U0D0;
+                TrayIcon = Properties.Resources.U0D0;
             }
         }
 
