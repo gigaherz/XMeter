@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
+using Microsoft.Win32;
+using XMeter2.Annotations;
+using Brush = System.Windows.Media.Brush;
 using Color = System.Windows.Media.Color;
 using Point = System.Windows.Point;
 
@@ -29,9 +31,13 @@ namespace XMeter2
 
         private string _upSpeed = "0 B/s";
         private string _downSpeed = "0 B/s";
-        private string _toolTipText = "Initializing...";
         private string _startTime = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
         private string _endTime = DateTime.Now.ToString("HH:mm:ss");
+        private Brush _popupBackground;
+        private Brush _popupBorder;
+        private bool _isPopupOpen;
+        private Brush _popupPanel;
+        private bool _preventReshow;
 
         public string StartTime
         {
@@ -77,21 +83,11 @@ namespace XMeter2
             }
         }
 
-        public string ToolTipText
-        {
-            get => _toolTipText;
-            private set
-            {
-                if (value == _toolTipText) return;
-                _toolTipText = value;
-                OnPropertyChanged();
-            }
-        }
-
         public Icon TrayIcon
         {
             get => _icon;
-            set {
+            set
+            {
                 if (ReferenceEquals(_icon, value)) return;
                 _icon = value;
                 NotificationIcon.Icon = value;
@@ -99,41 +95,114 @@ namespace XMeter2
             }
         }
 
+        public Brush PopupBackground
+        {
+            get => _popupBackground;
+            private set
+            {
+                if (Equals(value, _popupBackground)) return;
+                _popupBackground = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Brush PopupBorder
+        {
+            get => _popupBorder;
+            set
+            {
+                if (Equals(value, _popupBorder)) return;
+                _popupBorder = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Brush PopupPanel
+        {
+            get => _popupPanel;
+            set
+            {
+                if (Equals(value, _popupPanel)) return;
+                _popupPanel = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public bool IsPopupOpen
+        {
+            get => _isPopupOpen;
+            set
+            {
+                if (value == _isPopupOpen) return;
+                _isPopupOpen = value;
+                OnPropertyChanged();
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
-            
+
             SettingsManager.ReadSettings();
+
+            Hide();
 
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
             _timer.IsEnabled = true;
-
+            
             UpdateIcon(false, false);
 
             UpdateSpeeds();
 
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Hide));
+            SystemEvents.UserPreferenceChanging += SystemEvents_UserPreferenceChanging;
+
+            UpdateAccentColor();
+
+            Natives.EnableBlur(this);
         }
 
-        bool preventReshow = true;
+        private void UpdateAccentColor()
+        {
+            File.WriteAllLines(@"F:\Accents.txt", AccentColorSet.ActiveSet.GetAllColorNames().Select(s => {
+                var c = AccentColorSet.ActiveSet[s];
+                return $"{s}: {c}";
+            }));
+            var c1 = AccentColorSet.ActiveSet["SystemAccent"];
+            var c2 = AccentColorSet.ActiveSet["SystemAccentDark2"];
+            var c3 = Color.FromArgb(64,255,255,255); //AccentColorSet.ActiveSet["SystemTextDarkTheme"];
+            c2.A = 192;
+            PopupBackground = new SolidColorBrush(c2);
+            PopupBorder = new SolidColorBrush(c1);
+            PopupPanel = new SolidColorBrush(c3);
+        }
+
+        private void SystemEvents_UserPreferenceChanging(object sender, UserPreferenceChangingEventArgs e)
+        {
+            UpdateAccentColor();
+        }
+
         private void NotificationIcon_OnMouseLeftButtonDown(object sender, RoutedEventArgs routedEventArgs)
         {
             Debug.WriteLine("DOWN!");
             if (IsVisible)
-                preventReshow = true;
+                _preventReshow = true;
         }
 
         private void NotificationIcon_OnMouseLeftButtonUp(object sender, RoutedEventArgs routedEventArgs)
         {
-            Debug.WriteLine("UP!");
-            if (preventReshow)
+            if (_preventReshow)
             {
-                preventReshow = false;
+                Debug.WriteLine("PREVENTED!");
+                _preventReshow = false;
                 return;
             }
-            Left = SystemParameters.WorkArea.Width - Width - 8;
-            Top = SystemParameters.WorkArea.Height - Height - 8;
+
+            Debug.WriteLine("UP!");
+            Left = SystemParameters.WorkArea.Width - Width;
+            Top = SystemParameters.WorkArea.Height - Height;
+
+            _shown = true;
             Show();
         }
 
@@ -142,6 +211,11 @@ namespace XMeter2
             Debug.WriteLine("CLOSING!");
             e.Cancel = true;
             Hide();
+        }
+
+        private void MainWindow_OnActivated(object sender, EventArgs e)
+        {
+            Debug.WriteLine("ACTIVATED!");
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
@@ -162,11 +236,6 @@ namespace XMeter2
         
         private void Timer_Tick(object o, EventArgs e)
         {
-            if (IsVisible && !Natives.ApplicationIsActivated())
-            {
-                Hide();
-                return;
-            }
 
             UpdateSpeeds();
 
@@ -177,20 +246,18 @@ namespace XMeter2
             UpSpeed = Util.FormatUSize(_upPoints.Last.Value.Bytes);
             DownSpeed = Util.FormatUSize(_downPoints.Last.Value.Bytes);
 
-            ToolTipText = $"Send: {Util.FormatUSize(_upPoints.Last.Value.Bytes)}; Receive: {Util.FormatUSize(_downPoints.Last.Value.Bytes)}";
+            if (!IsVisible)
+                return;
 
-            if (IsVisible)
-            {
-                var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
-                var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
-                var spanSeconds = Math.Max(upTime,downTime);
+            var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
+            var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
+            var spanSeconds = Math.Max(upTime,downTime);
 
-                var currentCheck = DateTime.Now;
-                StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
-                EndTime = currentCheck.ToString("HH:mm:ss");
+            var currentCheck = DateTime.Now;
+            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
+            EndTime = currentCheck.ToString("HH:mm:ss");
 
-                UpdateGraph2();
-            }
+            UpdateGraph2();
         }
 
         private void UpdateIcon(bool sendActivity, bool recvActivity)
@@ -238,7 +305,7 @@ namespace XMeter2
 
         private void UpdateGraph2()
         {
-            picGraph.Children.Clear();
+            Graph.Children.Clear();
 
             var max = Math.Max(_lastMaxDown, _lastMaxUp);
 
@@ -251,16 +318,16 @@ namespace XMeter2
             if (points.Count == 0)
                 return;
 
-            var bottom = picGraph.ActualHeight;
-            var right = picGraph.ActualWidth;
+            var bottom = Graph.ActualHeight;
+            var right = Graph.ActualWidth;
 
             var lastTime = points.Last.Value.TimeStamp;
 
             var elapsed = (lastTime - points.First.Value.TimeStamp).TotalSeconds;
 
             var scale = 1.0;
-            if (elapsed > 0 && elapsed < picGraph.ActualWidth)
-                scale = picGraph.ActualWidth / elapsed;
+            if (elapsed > 0 && elapsed < Graph.ActualWidth)
+                scale = Graph.ActualWidth / elapsed;
 
             var polygon = new Polygon();
             for (var current = points.Last; current != null; current = current.Previous)
@@ -268,7 +335,7 @@ namespace XMeter2
                 var td = (lastTime - current.Value.TimeStamp).TotalSeconds;
 
                 var xx = right - td * scale;
-                var yy = current.Value.Bytes * picGraph.ActualHeight / max;
+                var yy = current.Value.Bytes * Graph.ActualHeight / max;
 
                 polygon.Points.Add(new Point(xx, up ? bottom - yy : yy));
             }
@@ -276,7 +343,7 @@ namespace XMeter2
             polygon.Points.Add(new Point(right, up ? bottom : 0));
 
             polygon.Fill = new SolidColorBrush(Color.FromArgb(255, r, g, b));
-            picGraph.Children.Add(polygon);
+            Graph.Children.Add(polygon);
         }
 
         private class TimeEntry
@@ -293,9 +360,20 @@ namespace XMeter2
 
         public event PropertyChangedEventHandler PropertyChanged;
 
+        [NotifyPropertyChangedInvocator]
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        bool _shown;
+        private void MainWindow_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (IsVisible && _shown)
+            {
+                _shown = false;
+                Dispatcher.BeginInvoke(new Action(() => Activate()));
+            }
         }
     }
 }
