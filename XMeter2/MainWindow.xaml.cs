@@ -7,12 +7,15 @@ using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using XMeter2.Annotations;
 using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
 using Color = System.Windows.Media.Color;
 using Point = System.Windows.Point;
 
@@ -22,6 +25,9 @@ namespace XMeter2
     {
         private readonly DispatcherTimer _timer = new DispatcherTimer();
 
+        private static readonly TimeSpan _showAnimationDelay = TimeSpan.FromMilliseconds(250);
+        private static readonly TimeSpan _showAnimationDuration = TimeSpan.FromMilliseconds(200);
+        
         private readonly LinkedList<TimeEntry> _upPoints = new LinkedList<TimeEntry>();
         private readonly LinkedList<TimeEntry> _downPoints = new LinkedList<TimeEntry>();
 
@@ -37,9 +43,24 @@ namespace XMeter2
         private Brush _popupBorder;
         private bool _isPopupOpen;
         private Brush _popupPanel;
-        private bool _preventReshow;
+        private bool _opening;
+        private bool _shown;
+        private string _downSpeedMax;
+        private string _upSpeedMax;
+        private DoubleAnimation _showOpacityAnimation = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = _showAnimationDuration,
+            DecelerationRatio = 1
+        };
+        private DoubleAnimation _showTopAnimation = new DoubleAnimation
+        {
+            Duration = _showAnimationDuration,
+            DecelerationRatio = 1
+        };
 
-        public string StartTime
+public string StartTime
         {
             get => _startTime;
             set
@@ -79,6 +100,28 @@ namespace XMeter2
             {
                 if (value == _downSpeed) return;
                 _downSpeed = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string DownSpeedMax
+        {
+            get => _downSpeedMax;
+            set
+            {
+                if (value == _downSpeedMax) return;
+                _downSpeedMax = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public string UpSpeedMax
+        {
+            get => _upSpeedMax;
+            set
+            {
+                if (value == _upSpeedMax) return;
+                _upSpeedMax = value;
                 OnPropertyChanged();
             }
         }
@@ -145,8 +188,6 @@ namespace XMeter2
 
             SettingsManager.ReadSettings();
 
-            Hide();
-
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
             _timer.IsEnabled = true;
@@ -160,6 +201,8 @@ namespace XMeter2
             UpdateAccentColor();
 
             Natives.EnableBlur(this);
+
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Hide));
         }
 
         private void UpdateAccentColor()
@@ -170,7 +213,7 @@ namespace XMeter2
             }));
             var c1 = AccentColorSet.ActiveSet["SystemAccent"];
             var c2 = AccentColorSet.ActiveSet["SystemAccentDark2"];
-            var c3 = Color.FromArgb(64,255,255,255); //AccentColorSet.ActiveSet["SystemTextDarkTheme"];
+            var c3 = Color.FromArgb(160,255,255,255); //AccentColorSet.ActiveSet["SystemTextDarkTheme"];
             c2.A = 192;
             PopupBackground = new SolidColorBrush(c2);
             PopupBorder = new SolidColorBrush(c1);
@@ -182,46 +225,79 @@ namespace XMeter2
             UpdateAccentColor();
         }
 
-        private void NotificationIcon_OnMouseLeftButtonDown(object sender, RoutedEventArgs routedEventArgs)
-        {
-            Debug.WriteLine("DOWN!");
-            if (IsVisible)
-                _preventReshow = true;
-        }
-
         private void NotificationIcon_OnMouseLeftButtonUp(object sender, RoutedEventArgs routedEventArgs)
         {
-            if (_preventReshow)
+            Popup();
+        }
+
+        private void Popup()
+        {
+            UpdateGraph2();
+            _opening = true;
+            DelayInvoke(250, () => {
+                _opening = false;
+                UpdateGraph2();
+            });
+
+            BeginAnimation(OpacityProperty, null);
+            BeginAnimation(TopProperty, null);
+            Left = SystemParameters.WorkArea.Width - Width;
+            Top = SystemParameters.WorkArea.Height;
+            Opacity = 0;
+
+            _shown = true;
+            Dispatcher.BeginInvoke(new Action(Show));
+        }
+
+        private void MainWindow_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
+        {
+            if (!IsVisible || !_shown)
             {
-                Debug.WriteLine("PREVENTED!");
-                _preventReshow = false;
+                Opacity = 0;
                 return;
             }
 
-            Debug.WriteLine("UP!");
-            Left = SystemParameters.WorkArea.Width - Width;
-            Top = SystemParameters.WorkArea.Height - Height;
+            _shown = false;
+            Dispatcher.BeginInvoke(new Action(() => Activate()));
 
-            _shown = true;
-            Show();
+            _showTopAnimation.From = SystemParameters.WorkArea.Height;
+            _showTopAnimation.To = SystemParameters.WorkArea.Height - Height;
+
+            DelayInvoke(_showAnimationDelay, () => {
+                BeginAnimation(OpacityProperty, _showOpacityAnimation);
+                BeginAnimation(TopProperty, _showTopAnimation);
+            });
         }
 
-        private void Window_Closing(object sender, CancelEventArgs e)
+        private void DelayInvoke(uint ms, Action callback)
         {
-            Debug.WriteLine("CLOSING!");
-            e.Cancel = true;
-            Hide();
+            DelayInvoke(TimeSpan.FromMilliseconds(ms), callback);
         }
 
-        private void MainWindow_OnActivated(object sender, EventArgs e)
+        private void DelayInvoke(TimeSpan time, Action callback)
         {
-            Debug.WriteLine("ACTIVATED!");
+            if (time.TotalSeconds < float.Epsilon)
+            {
+                Dispatcher.BeginInvoke(callback);
+                return;
+            }
+
+            var timer = new DispatcherTimer
+            {
+                Interval = time
+            };
+            timer.Tick += (_, __) =>
+            {
+                timer.Stop();
+                Dispatcher.Invoke(callback);
+            };
+            timer.Start();
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
         {
-            Debug.WriteLine("DEACTIVATED!");
             Hide();
+            Opacity = 0;
         }
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -236,7 +312,11 @@ namespace XMeter2
         
         private void Timer_Tick(object o, EventArgs e)
         {
+            PerformUpdate();
+        }
 
+        private void PerformUpdate()
+        {
             UpdateSpeeds();
 
             var sendActivity = _upPoints.Last.Value.Bytes > 0;
@@ -246,12 +326,12 @@ namespace XMeter2
             UpSpeed = Util.FormatUSize(_upPoints.Last.Value.Bytes);
             DownSpeed = Util.FormatUSize(_downPoints.Last.Value.Bytes);
 
-            if (!IsVisible)
+            if (!IsVisible || _opening)
                 return;
 
             var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
             var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
-            var spanSeconds = Math.Max(upTime,downTime);
+            var spanSeconds = Math.Max(upTime, downTime);
 
             var currentCheck = DateTime.Now;
             StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
@@ -289,6 +369,9 @@ namespace XMeter2
 
             _lastMaxDown = _downPoints.Select(s => s.Bytes).Max();
             _lastMaxUp = _upPoints.Select(s => s.Bytes).Max();
+
+            UpSpeedMax = Util.FormatUSize(_lastMaxUp);
+            DownSpeedMax = Util.FormatUSize(_lastMaxDown);
         }
 
         private static void AddData(LinkedList<TimeEntry> points, DateTime maxStamp, ulong bytesSentPerSec)
@@ -306,11 +389,32 @@ namespace XMeter2
         private void UpdateGraph2()
         {
             Graph.Children.Clear();
+            
+            var sqUp = Math.Max(32, Math.Sqrt(_lastMaxUp));
+            var sqDown = Math.Max(32, Math.Sqrt(_lastMaxDown));
+            var max2 = sqDown + sqUp;
+            var maxUp = max2 * _lastMaxUp / sqUp;
+            var maxDown = max2 * _lastMaxDown / sqDown;
 
-            var max = Math.Max(_lastMaxDown, _lastMaxUp);
+            BuildPolygon(_upPoints, (ulong) maxUp, 255, 24, 32, true);
+            BuildPolygon(_downPoints, (ulong) maxDown, 48, 48, 255,  false);
 
-            BuildPolygon(_upPoints, max, 255, 24, 32, true);
-            BuildPolygon(_downPoints, max, 48, 48, 255,  false);
+            var yy = sqDown * Graph.ActualHeight / max2;
+            var line = new Line
+            {
+                X1 = 0,
+                X2 = Graph.ActualWidth,
+                Y1 = yy,
+                Y2 = yy,
+                Stroke = Brushes.White,
+                Opacity = .6,
+                StrokeDashArray = new DoubleCollection(new[] {1.0, 2.0}),
+                StrokeDashCap = PenLineCap.Flat
+            };
+            Graph.Children.Add(line);
+
+            GraphDown.Margin = new Thickness(0, 0, 0, Graph.ActualHeight - yy);
+            GraphUp.Margin = new Thickness(0, yy, 0, 0);
         }
 
         private void BuildPolygon(LinkedList<TimeEntry> points, ulong max, byte r, byte g, byte b, bool up)
@@ -342,7 +446,7 @@ namespace XMeter2
 
             polygon.Points.Add(new Point(right, up ? bottom : 0));
 
-            polygon.Fill = new SolidColorBrush(Color.FromArgb(255, r, g, b));
+            polygon.Fill = new SolidColorBrush(Color.FromArgb(160, r, g, b));
             Graph.Children.Add(polygon);
         }
 
@@ -364,16 +468,6 @@ namespace XMeter2
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        bool _shown;
-        private void MainWindow_OnIsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
-        {
-            if (IsVisible && _shown)
-            {
-                _shown = false;
-                Dispatcher.BeginInvoke(new Action(() => Activate()));
-            }
         }
     }
 }

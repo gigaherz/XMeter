@@ -12,10 +12,12 @@
         ShowInTaskbar="False"
         Height="240" 
         Width="480" 
+        MinWidth="120"
+        MinHeight="120"
+        MaxWidth="{Binding Width, Source={x:Static SystemParameters.WorkArea}}"
+        MaxHeight="{Binding Height, Source={x:Static SystemParameters.WorkArea}}"
         FontSize="0.12in"
         SizeChanged="Window_SizeChanged"
-        Closing="Window_Closing" 
-        Activated="MainWindow_OnActivated"
         Deactivated="Window_Deactivated"
         IsVisibleChanged="MainWindow_OnIsVisibleChanged"
         UseLayoutRounding="True"
@@ -23,6 +25,8 @@
         BorderThickness="1,1,1,0" 
         AllowsTransparency="True"
         ShowActivated="True"
+        WindowStartupLocation="Manual"
+        Opacity="0"
         Background="{Binding PopupBackground}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <WindowChrome.WindowChrome>
@@ -35,7 +39,6 @@
     </WindowChrome.WindowChrome>
     <Grid>
         <tb:TaskbarIcon x:Name="NotificationIcon"
-                        TrayLeftMouseDown="NotificationIcon_OnMouseLeftButtonDown"
                         TrayLeftMouseUp="NotificationIcon_OnMouseLeftButtonUp"
                         NoLeftClickDelay="True">
             <tb:TaskbarIcon.ContextMenu>
@@ -45,7 +48,7 @@
             </tb:TaskbarIcon.ContextMenu>
             <tb:TaskbarIcon.TrayToolTip>
                 <ToolTip Padding="2" UseLayoutRounding="True">
-                    <local:SpeedDisplay MinWidth="5cm" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
+                    <local:SpeedDisplay MinWidth="200" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
                 </ToolTip>
             </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
@@ -56,7 +59,19 @@
                 <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
 
-            <Canvas Margin="0" Name="Graph" ClipToBounds="True"/>
+            <Grid>
+                <Canvas Margin="0" Name="Graph" ClipToBounds="True"></Canvas>
+                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                    <Label.Effect>
+                        <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
+                    </Label.Effect>
+                </Label>
+                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    <Label.Effect>
+                        <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
+                    </Label.Effect>
+                </Label>
+            </Grid>
 
             <Border Margin="0" Grid.Row="1" Background="{Binding PopupPanel}">
                 <Grid>
@@ -70,7 +85,7 @@
                     <Label FontSize="0.12in" Content="{Binding StartTime}" Padding="4,2" Grid.Column="1" />
                     <Label FontSize="0.12in" Content="{Binding EndTime}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
 
-                    <local:SpeedDisplay Grid.Column="2" MinWidth="5cm" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
+                    <local:SpeedDisplay Grid.Column="2" MinWidth="200" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
                 </Grid>
             </Border>
         </Grid>
