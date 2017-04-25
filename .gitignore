@@ -1,4 +1,5 @@
 /_ReSharper.XMeter
+/.vs
 /XMeter/bin
 /XMeter/obj
 /XMeter/publish

@@ -37,6 +37,9 @@
             GlassFrameThickness="0">
         </WindowChrome>
     </WindowChrome.WindowChrome>
+    <Window.Resources>
+        <local:USizeConverter x:Key="USizeConverter" />
+    </Window.Resources>
     <Grid>
         <tb:TaskbarIcon x:Name="NotificationIcon"
                         TrayLeftMouseUp="NotificationIcon_OnMouseLeftButtonUp"
@@ -48,7 +51,28 @@
             </tb:TaskbarIcon.ContextMenu>
             <tb:TaskbarIcon.TrayToolTip>
                 <ToolTip Padding="2" UseLayoutRounding="True">
-                    <local:SpeedDisplay MinWidth="200" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
+                    <Grid MinWidth="200">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
+                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                    </Grid>
                 </ToolTip>
             </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
@@ -61,12 +85,12 @@
 
             <Grid>
                 <Canvas Margin="0" Name="Graph" ClipToBounds="True"></Canvas>
-                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Bottom">
+                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Bottom">
                     <Label.Effect>
                         <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
                     </Label.Effect>
                 </Label>
-                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Top">
+                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Top">
                     <Label.Effect>
                         <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
                     </Label.Effect>
@@ -82,10 +106,31 @@
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Label FontSize="0.12in" Content="{Binding StartTime}" Padding="4,2" Grid.Column="1" />
-                    <Label FontSize="0.12in" Content="{Binding EndTime}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
+                    <Label FontSize="0.12in" Content="{Binding StartTime, StringFormat={}{0:HH:mm:ss}}" Padding="4,2" Grid.Column="1" />
+                    <Label FontSize="0.12in" Content="{Binding EndTime, StringFormat={}{0:HH:mm:ss}}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
 
-                    <local:SpeedDisplay Grid.Column="2" MinWidth="200" UpSpeed="{Binding UpSpeed}" DownSpeed="{Binding DownSpeed}"/>
+                    <Grid Grid.Column="2" MinWidth="200">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
+                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
+                            <Label.Content>
+                                <TextBlock>
+                                    <Run Text="{Binding DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                </TextBlock>
+                            </Label.Content>
+                        </Label>
+                    </Grid>
                 </Grid>
             </Border>
         </Grid>

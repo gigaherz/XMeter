@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
@@ -25,42 +23,36 @@ namespace XMeter2
     {
         private readonly DispatcherTimer _timer = new DispatcherTimer();
 
-        private static readonly TimeSpan _showAnimationDelay = TimeSpan.FromMilliseconds(250);
-        private static readonly TimeSpan _showAnimationDuration = TimeSpan.FromMilliseconds(200);
-        
-        private readonly LinkedList<TimeEntry> _upPoints = new LinkedList<TimeEntry>();
-        private readonly LinkedList<TimeEntry> _downPoints = new LinkedList<TimeEntry>();
+        private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(250);
+        private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(200);
+        private readonly DoubleAnimation _showOpacityAnimation = new DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = ShowAnimationDuration,
+            DecelerationRatio = 1
+        };
+        private readonly DoubleAnimation _showTopAnimation = new DoubleAnimation
+        {
+            Duration = ShowAnimationDuration,
+            DecelerationRatio = 1
+        };
 
-        private ulong _lastMaxUp;
-        private ulong _lastMaxDown;
-        private Icon _icon;
-
-        private string _upSpeed = "0 B/s";
-        private string _downSpeed = "0 B/s";
-        private string _startTime = DateTime.Now.AddSeconds(-1).ToString("HH:mm:ss");
-        private string _endTime = DateTime.Now.ToString("HH:mm:ss");
+        private ulong _upSpeed;
+        private ulong _downSpeed;
+        private ulong _downSpeedMax;
+        private ulong _upSpeedMax;
+        private DateTime _startTime = DateTime.Now.AddSeconds(-1);
+        private DateTime _endTime = DateTime.Now;
         private Brush _popupBackground;
         private Brush _popupBorder;
         private bool _isPopupOpen;
         private Brush _popupPanel;
         private bool _opening;
         private bool _shown;
-        private string _downSpeedMax;
-        private string _upSpeedMax;
-        private DoubleAnimation _showOpacityAnimation = new DoubleAnimation
-        {
-            From = 0,
-            To = 1,
-            Duration = _showAnimationDuration,
-            DecelerationRatio = 1
-        };
-        private DoubleAnimation _showTopAnimation = new DoubleAnimation
-        {
-            Duration = _showAnimationDuration,
-            DecelerationRatio = 1
-        };
+        private Icon _icon;
 
-public string StartTime
+        public DateTime StartTime
         {
             get => _startTime;
             set
@@ -71,7 +63,7 @@ public string StartTime
             }
         }
 
-        public string EndTime
+        public DateTime EndTime
         {
             get => _endTime;
             set
@@ -82,7 +74,7 @@ public string StartTime
             }
         }
 
-        public string UpSpeed
+        public ulong UpSpeed
         {
             get => _upSpeed;
             set
@@ -93,7 +85,18 @@ public string StartTime
             }
         }
 
-        public string DownSpeed
+        public ulong UpSpeedMax
+        {
+            get => _upSpeedMax;
+            set
+            {
+                if (value == _upSpeedMax) return;
+                _upSpeedMax = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public ulong DownSpeed
         {
             get => _downSpeed;
             set
@@ -104,24 +107,13 @@ public string StartTime
             }
         }
 
-        public string DownSpeedMax
+        public ulong DownSpeedMax
         {
             get => _downSpeedMax;
             set
             {
                 if (value == _downSpeedMax) return;
                 _downSpeedMax = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string UpSpeedMax
-        {
-            get => _upSpeedMax;
-            set
-            {
-                if (value == _upSpeedMax) return;
-                _upSpeedMax = value;
                 OnPropertyChanged();
             }
         }
@@ -191,18 +183,18 @@ public string StartTime
             _timer.Interval = TimeSpan.FromSeconds(1);
             _timer.Tick += Timer_Tick;
             _timer.IsEnabled = true;
-            
-            UpdateIcon(false, false);
-
-            UpdateSpeeds();
 
             SystemEvents.UserPreferenceChanging += SystemEvents_UserPreferenceChanging;
 
-            UpdateAccentColor();
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => {
 
-            Natives.EnableBlur(this);
+                UpdateAccentColor();
 
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(Hide));
+                Natives.EnableBlur(this);
+
+                PerformUpdate();
+                Hide();
+            }));
         }
 
         private void UpdateAccentColor()
@@ -232,11 +224,11 @@ public string StartTime
 
         private void Popup()
         {
-            UpdateGraph2();
+            UpdateGraphUI();
             _opening = true;
             DelayInvoke(250, () => {
                 _opening = false;
-                UpdateGraph2();
+                UpdateGraphUI();
             });
 
             BeginAnimation(OpacityProperty, null);
@@ -263,7 +255,7 @@ public string StartTime
             _showTopAnimation.From = SystemParameters.WorkArea.Height;
             _showTopAnimation.To = SystemParameters.WorkArea.Height - Height;
 
-            DelayInvoke(_showAnimationDelay, () => {
+            DelayInvoke(ShowAnimationDelay, () => {
                 BeginAnimation(OpacityProperty, _showOpacityAnimation);
                 BeginAnimation(TopProperty, _showTopAnimation);
             });
@@ -317,31 +309,41 @@ public string StartTime
 
         private void PerformUpdate()
         {
-            UpdateSpeeds();
+            DataTracker.FetchData();
 
-            var sendActivity = _upPoints.Last.Value.Bytes > 0;
-            var recvActivity = _downPoints.Last.Value.Bytes > 0;
-            UpdateIcon(sendActivity, recvActivity);
+            var (sendSpeed, recvSpeed) = DataTracker.CurrentSpeed;
+            UpSpeed = sendSpeed;
+            DownSpeed = recvSpeed;
 
-            UpSpeed = Util.FormatUSize(_upPoints.Last.Value.Bytes);
-            DownSpeed = Util.FormatUSize(_downPoints.Last.Value.Bytes);
+            var (sendMax, recvMax) = DataTracker.MaxSpeed;
+            UpSpeedMax = sendMax;
+            DownSpeedMax = recvMax;
+
+            UpdateIcon();
 
             if (!IsVisible || _opening)
                 return;
 
-            var upTime = (_upPoints.Last.Value.TimeStamp - _upPoints.First.Value.TimeStamp).TotalSeconds;
-            var downTime = (_downPoints.Last.Value.TimeStamp - _downPoints.First.Value.TimeStamp).TotalSeconds;
+            var (sendTimeLast, recvTimeLast) = DataTracker.CurrentTime;
+            var (sendTimeFirst, recvTimeFirst) = DataTracker.FirstTime;
+
+            var upTime =   (sendTimeLast - sendTimeFirst).TotalSeconds;
+            var downTime = (recvTimeLast - recvTimeFirst).TotalSeconds;
             var spanSeconds = Math.Max(upTime, downTime);
 
             var currentCheck = DateTime.Now;
-            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss");
-            EndTime = currentCheck.ToString("HH:mm:ss");
+            StartTime = currentCheck.AddSeconds(-spanSeconds);
+            EndTime = currentCheck;
 
-            UpdateGraph2();
+            UpdateGraphUI();
         }
 
-        private void UpdateIcon(bool sendActivity, bool recvActivity)
+        private void UpdateIcon()
         {
+            var (sendSpeed, recvSpeed) = DataTracker.CurrentSpeed;
+            var sendActivity = sendSpeed > 0;
+            var recvActivity = recvSpeed > 0;
+
             if (sendActivity && recvActivity)
             {
                 TrayIcon = Properties.Resources.U1D1;
@@ -360,44 +362,20 @@ public string StartTime
             }
         }
 
-        private void UpdateSpeeds()
-        {
-            var maxStamp = NetTracker.UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec);
-
-            AddData(_upPoints, maxStamp, bytesSentPerSec);
-            AddData(_downPoints, maxStamp, bytesReceivedPerSec);
-
-            _lastMaxDown = _downPoints.Select(s => s.Bytes).Max();
-            _lastMaxUp = _upPoints.Select(s => s.Bytes).Max();
-
-            UpSpeedMax = Util.FormatUSize(_lastMaxUp);
-            DownSpeedMax = Util.FormatUSize(_lastMaxDown);
-        }
-
-        private static void AddData(LinkedList<TimeEntry> points, DateTime maxStamp, ulong bytesSentPerSec)
-        {
-            points.AddLast(new TimeEntry(maxStamp, bytesSentPerSec));
-
-            var totalSpan = points.Last.Value.TimeStamp - points.First.Value.TimeStamp;
-            while (totalSpan.TotalSeconds > NetTracker.MaxSecondSpan && points.Count > 1)
-            {
-                points.RemoveFirst();
-                totalSpan = points.Last.Value.TimeStamp - points.First.Value.TimeStamp;
-            }
-        }
-
-        private void UpdateGraph2()
+        private void UpdateGraphUI()
         {
             Graph.Children.Clear();
-            
-            var sqUp = Math.Max(32, Math.Sqrt(_lastMaxUp));
-            var sqDown = Math.Max(32, Math.Sqrt(_lastMaxDown));
-            var max2 = sqDown + sqUp;
-            var maxUp = max2 * _lastMaxUp / sqUp;
-            var maxDown = max2 * _lastMaxDown / sqDown;
 
-            BuildPolygon(_upPoints, (ulong) maxUp, 255, 24, 32, true);
-            BuildPolygon(_downPoints, (ulong) maxDown, 48, 48, 255,  false);
+            (var sendSpeedMax, var recvSpeedMax) = DataTracker.MaxSpeed;
+
+            var sqUp = Math.Max(32, Math.Sqrt(sendSpeedMax));
+            var sqDown = Math.Max(32, Math.Sqrt(recvSpeedMax));
+            var max2 = sqDown + sqUp;
+            var maxUp = max2 * sendSpeedMax / sqUp;
+            var maxDown = max2 * recvSpeedMax / sqDown;
+
+            BuildPolygon(DataTracker.SendPoints, (ulong) maxUp, 255, 24, 32, true);
+            BuildPolygon(DataTracker.RecvPoints, (ulong) maxDown, 48, 48, 255,  false);
 
             var yy = sqDown * Graph.ActualHeight / max2;
             var line = new Line
@@ -417,7 +395,7 @@ public string StartTime
             GraphUp.Margin = new Thickness(0, yy, 0, 0);
         }
 
-        private void BuildPolygon(LinkedList<TimeEntry> points, ulong max, byte r, byte g, byte b, bool up)
+        private void BuildPolygon(LinkedList<(DateTime TimeStamp, ulong Bytes)> points, ulong max, byte r, byte g, byte b, bool up)
         {
             if (points.Count == 0)
                 return;
@@ -448,18 +426,6 @@ public string StartTime
 
             polygon.Fill = new SolidColorBrush(Color.FromArgb(160, r, g, b));
             Graph.Children.Add(polygon);
-        }
-
-        private class TimeEntry
-        {
-            public readonly DateTime TimeStamp;
-            public readonly ulong Bytes;
-
-            public TimeEntry(DateTime t, ulong b)
-            {
-                TimeStamp = t;
-                Bytes = b;
-            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
