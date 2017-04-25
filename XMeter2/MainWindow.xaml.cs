@@ -412,6 +412,8 @@ namespace XMeter2
                 scale = Graph.ActualWidth / elapsed;
 
             var polygon = new Polygon();
+            polygon.Points.Add(new Point(right, up ? bottom : 0));
+
             for (var current = points.Last; current != null; current = current.Previous)
             {
                 var td = (lastTime - current.Value.TimeStamp).TotalSeconds;
@@ -422,7 +424,7 @@ namespace XMeter2
                 polygon.Points.Add(new Point(xx, up ? bottom - yy : yy));
             }
 
-            polygon.Points.Add(new Point(right, up ? bottom : 0));
+            polygon.Points.Add(new Point(right - elapsed * scale, up ? bottom : 0));
 
             polygon.Fill = new SolidColorBrush(Color.FromArgb(160, r, g, b));
             Graph.Children.Add(polygon);
