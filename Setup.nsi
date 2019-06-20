@@ -2,23 +2,20 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "XMeter"
-!define PRODUCT_VERSION "1.2"
-!define PRODUCT_PUBLISHER "David Quintana"
-!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\XMeter.exe"
+!define PRODUCT_VERSION "2.0.2"
+!define PRODUCT_PUBLISHER "gigaherz"
+!define PRODUCT_WEB_SITE "https://github.com/gigaherz/XMeter"
+!define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\XMeter2.exe"
 !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 !define PRODUCT_UNINST_ROOT_KEY "HKLM"
-!define PRODUCT_STARTMENU_REGVAL "NSIS:StartMenuDir"
 
-!define USER_ROOT_KEY "HKCU"
-!define WINDOWS_RUN_KEY "Software\Microsoft\Windows\CurrentVersion\Run"
+SetCompressor lzma
 
-SetCompressor bzip2
-
-RequestExecutionLevel admin
-
-; MUI
-!include "MUI.nsh"
+; MUI 1.67 compatible ------
+!include "MUI2.nsh"
+!include "InstallOptions.nsh"
 !include "DotNetChecker.nsh"
+
 
 ; MUI Settings
 !define MUI_ABORTWARNING
@@ -28,21 +25,13 @@ RequestExecutionLevel admin
 ; Welcome page
 !insertmacro MUI_PAGE_WELCOME
 ; License page
-!insertmacro MUI_PAGE_LICENSE "License.rtf"
+!insertmacro MUI_PAGE_LICENSE "README.md"
 ; Directory page
 !insertmacro MUI_PAGE_DIRECTORY
-; Start menu page
-var ICONS_GROUP
-!define MUI_STARTMENUPAGE_NODISABLE
-!define MUI_STARTMENUPAGE_DEFAULTFOLDER "XMeter"
-!define MUI_STARTMENUPAGE_REGISTRY_ROOT "${PRODUCT_UNINST_ROOT_KEY}"
-!define MUI_STARTMENUPAGE_REGISTRY_KEY "${PRODUCT_UNINST_KEY}"
-!define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "${PRODUCT_STARTMENU_REGVAL}"
-!insertmacro MUI_PAGE_STARTMENU Application $ICONS_GROUP
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\XMeter.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\XMeter2.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
@@ -52,12 +41,12 @@ var ICONS_GROUP
 !insertmacro MUI_LANGUAGE "English"
 
 ; Reserve files
-!insertmacro MUI_RESERVEFILE_INSTALLOPTIONS
+ReserveFile '${NSISDIR}\Plugins\InstallOptions.dll'
 
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "${PRODUCT_NAME}-${PRODUCT_VERSION}-Setup.exe"
+OutFile "Setup.exe"
 InstallDir "$PROGRAMFILES\XMeter"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
@@ -65,40 +54,41 @@ ShowUnInstDetails show
 
 Section "MainSection" SEC01
   SetOutPath "$INSTDIR"
+
+  !insertmacro CheckNetFramework 462
+
   SetOverwrite try
-  File "XMeter\bin\Release\XMeter.exe"
-  File "XMeter\bin\Release\XMeter.exe.config"
-
-; Shortcuts
-  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-  CreateDirectory "$SMPROGRAMS\$ICONS_GROUP"
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\XMeter.lnk" "$INSTDIR\XMeter.exe"
-  CreateShortCut "$DESKTOP\XMeter.lnk" "$INSTDIR\XMeter.exe"
-  !insertmacro MUI_STARTMENU_WRITE_END
-  
-; Run at startup
-  WriteRegStr ${USER_ROOT_KEY} "${WINDOWS_RUN_KEY}" "${PRODUCT_NAME}" "$INSTDIR\XMeter.exe"
-
-  !insertmacro CheckNetFramework 40Client ; if your application targets .NET 4.0 
-
+  File "XMeter2\bin\Release\Hardcodet.Wpf.TaskbarNotification.dll"
+  File "XMeter2\bin\Release\Hardcodet.Wpf.TaskbarNotification.pdb"
+  File "XMeter2\bin\Release\Hardcodet.Wpf.TaskbarNotification.xml"
+  File "XMeter2\bin\Release\System.ValueTuple.dll"
+  File "XMeter2\bin\Release\XMeter2.exe"
+  CreateDirectory "$SMPROGRAMS\XMeter"
+  CreateShortCut "$SMPROGRAMS\XMeter\XMeter.lnk" "$INSTDIR\XMeter2.exe"
+  CreateShortCut "$DESKTOP\XMeter.lnk" "$INSTDIR\XMeter2.exe"
+  File "XMeter2\bin\Release\XMeter2.exe.config"
+  File "XMeter2\bin\Release\XMeter2.pdb"
+  SetOverwrite ifnewer
+  File "License.md"
+  File "README.md"
 SectionEnd
 
 Section -AdditionalIcons
-  !insertmacro MUI_STARTMENU_WRITE_BEGIN Application
-  CreateShortCut "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk" "$INSTDIR\uninst.exe"
-  !insertmacro MUI_STARTMENU_WRITE_END
+  WriteIniStr "$INSTDIR\${PRODUCT_NAME}.url" "InternetShortcut" "URL" "${PRODUCT_WEB_SITE}"
+  CreateShortCut "$SMPROGRAMS\XMeter\Website.lnk" "$INSTDIR\${PRODUCT_NAME}.url"
+  CreateShortCut "$SMPROGRAMS\XMeter\Uninstall.lnk" "$INSTDIR\uninst.exe"
 SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
-  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\XMeter.exe"
+  WriteRegStr HKLM "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\XMeter2.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
-  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\XMeter.exe"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\XMeter2.exe"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "DisplayVersion" "${PRODUCT_VERSION}"
+  WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
   WriteRegStr ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
 SectionEnd
-
 
 Function un.onUninstSuccess
   HideWindow
@@ -111,19 +101,26 @@ Function un.onInit
 FunctionEnd
 
 Section Uninstall
-  !insertmacro MUI_STARTMENU_GETFOLDER "Application" $ICONS_GROUP
+  Delete "$INSTDIR\${PRODUCT_NAME}.url"
   Delete "$INSTDIR\uninst.exe"
-  Delete "$INSTDIR\XMeter.exe.config"
-  Delete "$INSTDIR\XMeter.exe"
+  Delete "$INSTDIR\README.md"
+  Delete "$INSTDIR\License.md"
+  Delete "$INSTDIR\XMeter2.pdb"
+  Delete "$INSTDIR\XMeter2.exe.config"
+  Delete "$INSTDIR\XMeter2.exe"
+  Delete "$INSTDIR\Hardcodet.Wpf.TaskbarNotification.xml"
+  Delete "$INSTDIR\Hardcodet.Wpf.TaskbarNotification.pdb"
+  Delete "$INSTDIR\Hardcodet.Wpf.TaskbarNotification.dll"
+  Delete "$INSTDIR\System.ValueTuple.dll"
 
-  Delete "$SMPROGRAMS\$ICONS_GROUP\Uninstall.lnk"
+  Delete "$SMPROGRAMS\XMeter\Uninstall.lnk"
+  Delete "$SMPROGRAMS\XMeter\Website.lnk"
   Delete "$DESKTOP\XMeter.lnk"
-  Delete "$SMPROGRAMS\$ICONS_GROUP\XMeter.lnk"
+  Delete "$SMPROGRAMS\XMeter\XMeter.lnk"
 
-  RMDir "$SMPROGRAMS\$ICONS_GROUP"
+  RMDir "$SMPROGRAMS\XMeter"
   RMDir "$INSTDIR"
 
-  DeleteRegValue ${USER_ROOT_KEY} "${WINDOWS_RUN_KEY}" "${PRODUCT_NAME}"
   DeleteRegKey ${PRODUCT_UNINST_ROOT_KEY} "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKLM "${PRODUCT_DIR_REGKEY}"
   SetAutoClose true

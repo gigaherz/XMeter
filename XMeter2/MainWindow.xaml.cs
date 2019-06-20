@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -42,8 +43,8 @@ namespace XMeter2
         private ulong _downSpeed;
         private ulong _downSpeedMax;
         private ulong _upSpeedMax;
-        private DateTime _startTime = DateTime.Now.AddSeconds(-1);
-        private DateTime _endTime = DateTime.Now;
+        private string _startTime;
+        private string _endTime;
         private Brush _popupBackground;
         private Brush _popupBorder;
         private bool _isPopupOpen;
@@ -52,7 +53,7 @@ namespace XMeter2
         private bool _shown;
         private Icon _icon;
 
-        public DateTime StartTime
+        public string StartTime
         {
             get => _startTime;
             set
@@ -63,7 +64,7 @@ namespace XMeter2
             }
         }
 
-        public DateTime EndTime
+        public string EndTime
         {
             get => _endTime;
             set
@@ -174,9 +175,15 @@ namespace XMeter2
             }
         }
 
+        public string MenuTitle { get; }
+
         public MainWindow()
         {
+            var ass = Application.Current.MainWindow.GetType().Assembly.GetName();
+            MenuTitle = $"XMeter v{ass.Version}";
+
             InitializeComponent();
+
 
             SettingsManager.ReadSettings();
 
@@ -199,16 +206,19 @@ namespace XMeter2
 
         private void UpdateAccentColor()
         {
+#if DEBUG
             File.WriteAllLines(@"F:\Accents.txt", AccentColorSet.ActiveSet.GetAllColorNames().Select(s => {
                 var c = AccentColorSet.ActiveSet[s];
                 return $"{s}: {c}";
             }));
+#endif
             var c1 = AccentColorSet.ActiveSet["SystemAccent"];
             var c2 = AccentColorSet.ActiveSet["SystemAccentDark2"];
-            var c3 = Color.FromArgb(160,255,255,255); //AccentColorSet.ActiveSet["SystemTextDarkTheme"];
+            var c3 = AccentColorSet.ActiveSet["SystemAccentLight2"];
             c2.A = 192;
+            c1.A = 128;
             PopupBackground = new SolidColorBrush(c2);
-            PopupBorder = new SolidColorBrush(c1);
+            PopupBorder = Brushes.Transparent; // new SolidColorBrush(c1);
             PopupPanel = new SolidColorBrush(c3);
         }
 
@@ -295,6 +305,8 @@ namespace XMeter2
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             SettingsManager.WriteSettings();
+
+            UpdateTime();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -324,18 +336,23 @@ namespace XMeter2
             if (!IsVisible || _opening)
                 return;
 
+            UpdateTime();
+
+            UpdateGraphUI();
+        }
+
+        private void UpdateTime()
+        {
             var (sendTimeLast, recvTimeLast) = DataTracker.CurrentTime;
             var (sendTimeFirst, recvTimeFirst) = DataTracker.FirstTime;
 
-            var upTime =   (sendTimeLast - sendTimeFirst).TotalSeconds;
+            var upTime = (sendTimeLast - sendTimeFirst).TotalSeconds;
             var downTime = (recvTimeLast - recvTimeFirst).TotalSeconds;
-            var spanSeconds = Math.Max(upTime, downTime);
+            var spanSeconds = Math.Min(Graph.ActualWidth, Math.Max(upTime, downTime));
 
             var currentCheck = DateTime.Now;
-            StartTime = currentCheck.AddSeconds(-spanSeconds);
-            EndTime = currentCheck;
-
-            UpdateGraphUI();
+            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss", CultureInfo.CurrentUICulture);
+            EndTime = currentCheck.ToString("HH:mm:ss", CultureInfo.CurrentUICulture);
         }
 
         private void UpdateIcon()

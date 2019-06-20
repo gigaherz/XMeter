@@ -21,13 +21,13 @@
         Deactivated="Window_Deactivated"
         IsVisibleChanged="MainWindow_OnIsVisibleChanged"
         UseLayoutRounding="True"
-        BorderBrush="{Binding PopupBorder}"
+        BorderBrush="{Binding PopupBorder, Mode=OneWay}"
         BorderThickness="1,1,1,0" 
         AllowsTransparency="True"
         ShowActivated="True"
         WindowStartupLocation="Manual"
         Opacity="0"
-        Background="{Binding PopupBackground}"
+        Background="{Binding PopupBackground, Mode=OneWay}"
         DataContext="{Binding RelativeSource={RelativeSource Self}}">
     <WindowChrome.WindowChrome>
         <WindowChrome
@@ -46,6 +46,8 @@
                         NoLeftClickDelay="True">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
+                    <MenuItem IsEnabled="False" Header="{Binding MenuTitle}"></MenuItem>
+                    <Separator />
                     <MenuItem Header="Exit" Click="Exit_Click"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
@@ -84,7 +86,7 @@
             </Grid.RowDefinitions>
 
             <Grid>
-                <Canvas Margin="0" Name="Graph" ClipToBounds="True"></Canvas>
+                <Canvas Margin="0" Name="Graph" ClipToBounds="True" Opacity="0.75"></Canvas>
                 <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Bottom">
                     <Label.Effect>
                         <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
@@ -97,7 +99,7 @@
                 </Label>
             </Grid>
 
-            <Border Margin="0" Grid.Row="1" Background="{Binding PopupPanel}">
+            <Border Margin="0" Grid.Row="1" Background="{Binding PopupPanel, Mode=OneWay}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="auto"/>
@@ -106,8 +108,8 @@
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Label FontSize="0.12in" Content="{Binding StartTime, StringFormat={}{0:HH:mm:ss}}" Padding="4,2" Grid.Column="1" />
-                    <Label FontSize="0.12in" Content="{Binding EndTime, StringFormat={}{0:HH:mm:ss}}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
+                    <Label FontSize="0.12in" Content="{Binding StartTime, Mode=OneWay}" Padding="4,2" Grid.Column="1" />
+                    <Label FontSize="0.12in" Content="{Binding EndTime, Mode=OneWay}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
 
                     <Grid Grid.Column="2" MinWidth="200">
                         <Grid.ColumnDefinitions>

@@ -22,16 +22,22 @@ namespace XMeter2
         public static LinkedList<(DateTime TimeStamp, ulong Bytes)> SendPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
         public static LinkedList<(DateTime TimeStamp, ulong Bytes)> RecvPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
 
-        public static (ulong send, ulong recv) CurrentSpeed => 
-            (SendPoints.Last.Value.Bytes,
-            RecvPoints.Last.Value.Bytes);
+        public static (ulong send, ulong recv) CurrentSpeed =>
+            (SendPoints.Count > 0 && RecvPoints.Count > 0)
+                ? (SendPoints.Last.Value.Bytes,
+                   RecvPoints.Last.Value.Bytes)
+                : (0, 0);
         public static (DateTime send, DateTime recv) CurrentTime =>
-            (SendPoints.Last.Value.TimeStamp,
-            RecvPoints.Last.Value.TimeStamp);
+            (SendPoints.Count > 0 && RecvPoints.Count > 0) 
+                ? (SendPoints.Last.Value.TimeStamp,
+                   RecvPoints.Last.Value.TimeStamp)
+                : (DateTime.Now, DateTime.Now);
 
         public static (DateTime send, DateTime recv) FirstTime =>
-            (SendPoints.First.Value.TimeStamp,
-            RecvPoints.First.Value.TimeStamp);
+            (SendPoints.Count > 0 && RecvPoints.Count > 0)
+                ? (SendPoints.First.Value.TimeStamp,
+                   RecvPoints.First.Value.TimeStamp)
+                : (DateTime.Now, DateTime.Now);
 
         public static (ulong send, ulong recv) MaxSpeed => 
             (SendPoints.Select(s => s.Bytes).Max(),
