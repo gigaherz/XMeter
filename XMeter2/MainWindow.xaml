@@ -21,8 +21,8 @@
         Deactivated="Window_Deactivated"
         IsVisibleChanged="MainWindow_OnIsVisibleChanged"
         UseLayoutRounding="True"
-        BorderBrush="{Binding PopupBorder, Mode=OneWay}"
-        BorderThickness="1,1,1,0" 
+        BorderBrush="Transparent"
+        BorderThickness="0" 
         AllowsTransparency="True"
         ShowActivated="True"
         WindowStartupLocation="Manual"
@@ -39,6 +39,7 @@
     </WindowChrome.WindowChrome>
     <Window.Resources>
         <local:USizeConverter x:Key="USizeConverter" />
+        <DropShadowEffect x:Key="TextShadow" BlurRadius="6" Opacity=".75" ShadowDepth="0" RenderingBias="Performance" Color="{Binding TextShadow}" />
     </Window.Resources>
     <Grid>
         <tb:TaskbarIcon x:Name="NotificationIcon"
@@ -85,21 +86,17 @@
                 <RowDefinition Height="auto"/>
             </Grid.RowDefinitions>
 
-            <Grid>
-                <Canvas Margin="0" Name="Graph" ClipToBounds="True" Opacity="0.75"></Canvas>
-                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Bottom">
-                    <Label.Effect>
-                        <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
-                    </Label.Effect>
+            <Grid Margin="0">
+                <Canvas Margin="0" Name="Graph" ClipToBounds="True"></Canvas>
+                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" 
+                        Foreground="{Binding TextColor}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Effect="{StaticResource TextShadow}">
                 </Label>
-                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" Foreground="White" HorizontalAlignment="Left" VerticalAlignment="Top">
-                    <Label.Effect>
-                        <DropShadowEffect BlurRadius="2" Opacity=".75" ShadowDepth="1.5" RenderingBias="Performance" />
-                    </Label.Effect>
+                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}"
+                        Foreground="{Binding TextColor}" HorizontalAlignment="Left" VerticalAlignment="Top" Effect="{StaticResource TextShadow}">
                 </Label>
-            </Grid>
+            </Grid> 
 
-            <Border Margin="0" Grid.Row="1" Background="{Binding PopupPanel, Mode=OneWay}">
+            <Border Margin="0" Grid.Row="1" Background="{Binding AccentBackground}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="auto"/>
@@ -108,8 +105,12 @@
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Label FontSize="0.12in" Content="{Binding StartTime, Mode=OneWay}" Padding="4,2" Grid.Column="1" />
-                    <Label FontSize="0.12in" Content="{Binding EndTime, Mode=OneWay}" Padding="4,2" Grid.Column="3" HorizontalContentAlignment="Right" />
+                    <Label FontSize="0.12in" Content="{Binding StartTime, Mode=OneWay}" Padding="8,4" Grid.Column="1" Foreground="{Binding TextColor}"
+                           VerticalAlignment="Center" Effect="{StaticResource TextShadow}">
+                    </Label>
+                    <Label FontSize="0.12in" Content="{Binding EndTime, Mode=OneWay}" Padding="8,4" Grid.Column="3" Foreground="{Binding TextColor}" 
+                           HorizontalContentAlignment="Right" VerticalAlignment="Center" Effect="{StaticResource TextShadow}">
+                    </Label>
 
                     <Grid Grid.Column="2" MinWidth="200">
                         <Grid.ColumnDefinitions>
@@ -117,7 +118,8 @@
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
+                        <Label Grid.Column="0" Padding="12,8" HorizontalContentAlignment="Right" VerticalContentAlignment="Center"
+                               Foreground="{Binding TextColor}" Effect="{StaticResource TextShadow}">
                             <Label.Content>
                                 <TextBlock>
                                     <Run Text="{Binding UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
@@ -125,7 +127,7 @@
                             </Label.Content>
                         </Label>
                         <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
-                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
+                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" Foreground="{Binding TextColor}" Effect="{StaticResource TextShadow}">
                             <Label.Content>
                                 <TextBlock>
                                     <Run Text="{Binding DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />

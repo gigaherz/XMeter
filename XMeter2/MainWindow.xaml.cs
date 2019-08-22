@@ -46,12 +46,13 @@ namespace XMeter2
         private string _startTime;
         private string _endTime;
         private Brush _popupBackground;
-        private Brush _popupBorder;
+        private Brush _accentBackground;
+        private Color _popupBackgroundColor;
         private bool _isPopupOpen;
-        private Brush _popupPanel;
         private bool _opening;
         private bool _shown;
         private Icon _icon;
+        private Brush _mainText;
 
         public string StartTime
         {
@@ -142,24 +143,35 @@ namespace XMeter2
             }
         }
 
-        public Brush PopupBorder
+        public Brush AccentBackground
         {
-            get => _popupBorder;
-            set
+            get => _accentBackground;
+            private set
             {
-                if (Equals(value, _popupBorder)) return;
-                _popupBorder = value;
+                if (Equals(value, _accentBackground)) return;
+                _accentBackground = value;
                 OnPropertyChanged();
             }
         }
 
-        public Brush PopupPanel
+        public Color TextShadow
         {
-            get => _popupPanel;
+            get => _popupBackgroundColor;
+            private set
+            {
+                if (Equals(value, _popupBackgroundColor)) return;
+                _popupBackgroundColor = value;
+                OnPropertyChanged();
+            }
+        }
+
+        public Brush TextColor
+        {
+            get => _mainText;
             set
             {
-                if (Equals(value, _popupPanel)) return;
-                _popupPanel = value;
+                if (Equals(value, _mainText)) return;
+                _mainText = value;
                 OnPropertyChanged();
             }
         }
@@ -197,8 +209,6 @@ namespace XMeter2
 
                 UpdateAccentColor();
 
-                Natives.EnableBlur(this);
-
                 PerformUpdate();
                 Hide();
             }));
@@ -206,20 +216,32 @@ namespace XMeter2
 
         private void UpdateAccentColor()
         {
-#if DEBUG
+#if false
             File.WriteAllLines(@"F:\Accents.txt", AccentColorSet.ActiveSet.GetAllColorNames().Select(s => {
                 var c = AccentColorSet.ActiveSet[s];
                 return $"{s}: {c}";
             }));
 #endif
-            var c1 = AccentColorSet.ActiveSet["SystemAccent"];
-            var c2 = AccentColorSet.ActiveSet["SystemAccentDark2"];
-            var c3 = AccentColorSet.ActiveSet["SystemAccentLight2"];
-            c2.A = 192;
-            c1.A = 128;
-            PopupBackground = new SolidColorBrush(c2);
-            PopupBorder = Brushes.Transparent; // new SolidColorBrush(c1);
-            PopupPanel = new SolidColorBrush(c3);
+            var background = AccentColorSet.ActiveSet["SystemBackground"];
+            var backgroundDark = AccentColorSet.ActiveSet["SystemBackgroundDarkTheme"];
+            var shadow = background;
+            var text = AccentColorSet.ActiveSet["SystemText"];
+            var accent = AccentColorSet.ActiveSet["SystemAccentLight3"];
+            //if (background != backgroundDark)
+            //{
+            //    accent = AccentColorSet.ActiveSet["SystemAccentDark3"];
+            //}
+            accent.A = 128;
+            background.A = 160;
+
+            if (Natives.EnableBlur(this, background))
+            {
+                background = Colors.Transparent;
+            }
+            PopupBackground = new SolidColorBrush(background);
+            AccentBackground = new SolidColorBrush(accent);
+            TextColor = new SolidColorBrush(text);
+            TextShadow = shadow;
         }
 
         private void SystemEvents_UserPreferenceChanging(object sender, UserPreferenceChangingEventArgs e)
@@ -321,13 +343,13 @@ namespace XMeter2
 
         private void PerformUpdate()
         {
-            DataTracker.FetchData();
+            DataTracker.Instance.FetchData();
 
-            var (sendSpeed, recvSpeed) = DataTracker.CurrentSpeed;
+            var (sendSpeed, recvSpeed) = DataTracker.Instance.CurrentSpeed;
             UpSpeed = sendSpeed;
             DownSpeed = recvSpeed;
 
-            var (sendMax, recvMax) = DataTracker.MaxSpeed;
+            var (sendMax, recvMax) = DataTracker.Instance.MaxSpeed;
             UpSpeedMax = sendMax;
             DownSpeedMax = recvMax;
 
@@ -343,8 +365,8 @@ namespace XMeter2
 
         private void UpdateTime()
         {
-            var (sendTimeLast, recvTimeLast) = DataTracker.CurrentTime;
-            var (sendTimeFirst, recvTimeFirst) = DataTracker.FirstTime;
+            var (sendTimeLast, recvTimeLast) = DataTracker.Instance.CurrentTime;
+            var (sendTimeFirst, recvTimeFirst) = DataTracker.Instance.FirstTime;
 
             var upTime = (sendTimeLast - sendTimeFirst).TotalSeconds;
             var downTime = (recvTimeLast - recvTimeFirst).TotalSeconds;
@@ -357,7 +379,7 @@ namespace XMeter2
 
         private void UpdateIcon()
         {
-            var (sendSpeed, recvSpeed) = DataTracker.CurrentSpeed;
+            var (sendSpeed, recvSpeed) = DataTracker.Instance.CurrentSpeed;
             var sendActivity = sendSpeed > 0;
             var recvActivity = recvSpeed > 0;
 
@@ -383,7 +405,12 @@ namespace XMeter2
         {
             Graph.Children.Clear();
 
-            (var sendSpeedMax, var recvSpeedMax) = DataTracker.MaxSpeed;
+            int maxPoints = (int)(Graph.ActualWidth / 10);
+            //DataTracker copy = DataTracker.Instance.Simplify(maxPoints);
+            //DataTracker copy = DataTracker.Instance.Simplify(4);
+            var copy = DataTracker.Instance;
+
+            var (sendSpeedMax, recvSpeedMax) = copy.MaxSpeed;
 
             var sqUp = Math.Max(32, Math.Sqrt(sendSpeedMax));
             var sqDown = Math.Max(32, Math.Sqrt(recvSpeedMax));
@@ -391,8 +418,8 @@ namespace XMeter2
             var maxUp = max2 * sendSpeedMax / sqUp;
             var maxDown = max2 * recvSpeedMax / sqDown;
 
-            BuildPolygon(DataTracker.SendPoints, (ulong) maxUp, 255, 24, 32, true);
-            BuildPolygon(DataTracker.RecvPoints, (ulong) maxDown, 48, 48, 255,  false);
+            BuildPolygon(copy.SendPoints, (ulong) maxUp, 255, 24, 32, true);
+            BuildPolygon(copy.RecvPoints, (ulong) maxDown, 48, 48, 255,  false);
 
             var yy = sqDown * Graph.ActualHeight / max2;
             var line = new Line
@@ -401,7 +428,7 @@ namespace XMeter2
                 X2 = Graph.ActualWidth,
                 Y1 = yy,
                 Y2 = yy,
-                Stroke = Brushes.White,
+                Stroke = TextColor,
                 Opacity = .6,
                 StrokeDashArray = new DoubleCollection(new[] {1.0, 2.0}),
                 StrokeDashCap = PenLineCap.Flat
@@ -428,7 +455,7 @@ namespace XMeter2
             if (elapsed > 0 && elapsed < Graph.ActualWidth)
                 scale = Graph.ActualWidth / elapsed;
 
-            var polygon = new Polygon();
+            var polygon = new Polyline();
             polygon.Points.Add(new Point(right, up ? bottom : 0));
 
             for (var current = points.Last; current != null; current = current.Previous)
@@ -443,7 +470,9 @@ namespace XMeter2
 
             polygon.Points.Add(new Point(right - elapsed * scale, up ? bottom : 0));
 
-            polygon.Fill = new SolidColorBrush(Color.FromArgb(160, r, g, b));
+            polygon.Stroke = new SolidColorBrush(Color.FromArgb(160, r, g, b));
+            polygon.StrokeThickness = 2;
+            polygon.Fill = new SolidColorBrush(Color.FromArgb(64, r, g, b));
             Graph.Children.Add(polygon);
         }
 

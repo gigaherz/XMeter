@@ -9,41 +9,33 @@ namespace XMeter2
 {
     class DataTracker
     {
-        public const double MaxSecondSpan = 3600;
+        public static readonly DataTracker Instance = new DataTracker();
 
-        private static readonly Dictionary<string, ulong> PrevLastSend = new Dictionary<string, ulong>();
-        private static readonly Dictionary<string, ulong> PrevLastRecv = new Dictionary<string, ulong>();
-        private static readonly Dictionary<string, DateTime> PrevLastStamp = new Dictionary<string, DateTime>();
         private static readonly ManagementObjectSearcher Searcher =
             new ManagementObjectSearcher(
                 "SELECT Name, BytesReceivedPerSec, BytesSentPerSec, Timestamp_Sys100NS" +
                 " FROM Win32_PerfRawData_Tcpip_NetworkInterface");
 
-        public static LinkedList<(DateTime TimeStamp, ulong Bytes)> SendPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
-        public static LinkedList<(DateTime TimeStamp, ulong Bytes)> RecvPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
+        public const double MaxSecondSpan = 3600;
 
-        public static (ulong send, ulong recv) CurrentSpeed =>
-            (SendPoints.Count > 0 && RecvPoints.Count > 0)
-                ? (SendPoints.Last.Value.Bytes,
-                   RecvPoints.Last.Value.Bytes)
-                : (0, 0);
-        public static (DateTime send, DateTime recv) CurrentTime =>
-            (SendPoints.Count > 0 && RecvPoints.Count > 0) 
-                ? (SendPoints.Last.Value.TimeStamp,
-                   RecvPoints.Last.Value.TimeStamp)
-                : (DateTime.Now, DateTime.Now);
+        private readonly Dictionary<string, ulong> PrevLastSend = new Dictionary<string, ulong>();
+        private readonly Dictionary<string, ulong> PrevLastRecv = new Dictionary<string, ulong>();
+        private readonly Dictionary<string, DateTime> PrevLastStamp = new Dictionary<string, DateTime>();
 
-        public static (DateTime send, DateTime recv) FirstTime =>
-            (SendPoints.Count > 0 && RecvPoints.Count > 0)
-                ? (SendPoints.First.Value.TimeStamp,
-                   RecvPoints.First.Value.TimeStamp)
-                : (DateTime.Now, DateTime.Now);
+        public LinkedList<(DateTime TimeStamp, ulong Bytes)> SendPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
+        public LinkedList<(DateTime TimeStamp, ulong Bytes)> RecvPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
 
-        public static (ulong send, ulong recv) MaxSpeed => 
-            (SendPoints.Select(s => s.Bytes).Max(),
-            RecvPoints.Select(s => s.Bytes).Max());
+        public (ulong send, ulong recv) CurrentSpeed =>
+            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.Last.Value.Bytes, RecvPoints.Last.Value.Bytes) : (0, 0);
+        public (DateTime send, DateTime recv) CurrentTime =>
+            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.Last.Value.TimeStamp, RecvPoints.Last.Value.TimeStamp) : (DateTime.Now, DateTime.Now);
 
-        public static void FetchData()
+        public (DateTime send, DateTime recv) FirstTime => 
+            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.First.Value.TimeStamp, RecvPoints.First.Value.TimeStamp) : (DateTime.Now, DateTime.Now);
+
+        public (ulong send, ulong recv) MaxSpeed => (SendPoints.Count > 0 ? (SendPoints.Select(s => s.Bytes).Max(), RecvPoints.Select(s => s.Bytes).Max()) : (0,0));
+
+        public void FetchData()
         {
             var maxStamp = UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec);
 
@@ -63,7 +55,7 @@ namespace XMeter2
             AddData(RecvPoints, bytesReceivedPerSec);
         }
 
-        public static DateTime UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec)
+        private DateTime UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec)
         {
             var maxStamp = DateTime.MinValue;
 
@@ -113,6 +105,86 @@ namespace XMeter2
             }
 
             return maxStamp;
+        }
+
+        public DataTracker Simplify(int maxPoints)
+        {
+            var dt = new DataTracker();
+
+            if (SendPoints.Count == 0)
+                return dt;
+
+            double points = SendPoints.Count;
+
+            double last = 0;
+            int at = 0;
+            DateTime atdt = DateTime.MinValue;
+            double acc = 0;
+            TimeSpan time = TimeSpan.Zero;
+            for (var current = SendPoints.Last; current != null; current = current.Previous, at++)
+            {
+                var prev = current.Next;
+                if (prev == null)
+                {
+                    dt.SendPoints.AddFirst(current.Value);
+                    atdt = current.Value.TimeStamp;
+                    continue;
+                }
+                var ts = prev.Value.TimeStamp - current.Value.TimeStamp;
+                var vl = prev.Value.Bytes - current.Value.Bytes;
+                acc += vl;
+                time += ts;
+
+                double prog = Math.Floor(at * points / maxPoints);
+                if (prog > last)
+                {
+                    dt.SendPoints.AddFirst((atdt, (ulong)(acc/time.TotalSeconds)));
+                    atdt = current.Value.TimeStamp;
+                    acc = 0;
+
+                    last = prog;
+                }
+            }
+            if(time > TimeSpan.Zero)
+            {
+                dt.SendPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
+            }
+
+            last = 0;
+            at = 0;
+            atdt = DateTime.MinValue;
+            acc = 0;
+            time = TimeSpan.Zero;
+            for (var current = RecvPoints.Last; current != null; current = current.Previous, at++)
+            {
+                var prev = current.Next;
+                if (prev == null)
+                {
+                    dt.RecvPoints.AddFirst(current.Value);
+                    atdt = current.Value.TimeStamp;
+                    continue;
+                }
+                var ts = prev.Value.TimeStamp - current.Value.TimeStamp;
+                var vl = prev.Value.Bytes - current.Value.Bytes;
+                acc += vl;
+                time += ts;
+
+                double prog = Math.Floor(at * points / maxPoints);
+                if (prog > last)
+                {
+                    dt.RecvPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
+                    atdt = current.Value.TimeStamp;
+                    acc = 0;
+
+                    last = prog;
+                }
+            }
+            if (time > TimeSpan.Zero)
+            {
+                dt.RecvPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
+            }
+
+            return dt;
         }
     }
 }

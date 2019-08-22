@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace XMeter2
 {
@@ -56,7 +57,9 @@ namespace XMeter2
             ACCENT_ENABLE_GRADIENT = 1,
             ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
             ACCENT_ENABLE_BLURBEHIND = 3,
-            ACCENT_INVALID_STATE = 4
+            ACCENT_ENABLE_ACRYLICBLURBEHIND = 4, // RS4 1803
+            ACCENT_ENABLE_HOSTBACKDROP = 5, // RS5 1809
+            ACCENT_INVALID_STATE = 6
         }
 
         [Flags]
@@ -77,30 +80,43 @@ namespace XMeter2
             public int AnimationId;
         }
 
-        internal static void EnableBlur(MainWindow window)
+        internal static bool EnableBlur(MainWindow window, Color background)
+        {
+            return EnableBlur(window, ((uint)background.A << 24) | ((uint)background.B << 16) | ((uint)background.G << 8) | ((uint)background.R));
+        }
+
+        internal static bool EnableBlur(MainWindow window, uint backgroundColor)
         {
             var windowHelper = new WindowInteropHelper(window);
             windowHelper.EnsureHandle();
 
             var accent = new AccentPolicy();
             var accentStructSize = Marshal.SizeOf(accent);
-            accent.AccentState = AccentState.ACCENT_ENABLE_BLURBEHIND;
-            accent.AccentFlags = (int)(AccentEdges.Left | AccentEdges.Top);
-            accent.GradientColor = 0x3f00FF00;
+            accent.AccentState = AccentState.ACCENT_ENABLE_ACRYLICBLURBEHIND;
+            accent.AccentFlags = (int)(AccentEdges.Left | AccentEdges.Top | AccentEdges.Right | AccentEdges.Bottom);
+            accent.GradientColor = unchecked((int)backgroundColor);
 
-            var accentPtr = Marshal.AllocHGlobal(accentStructSize);
-            Marshal.StructureToPtr(accent, accentPtr, false);
-
-            var data = new WindowCompositionAttributeData
+            IntPtr accentPtr = IntPtr.Zero;
+            try
             {
-                Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY,
-                SizeOfData = accentStructSize,
-                Data = accentPtr
-            };
+                accentPtr = Marshal.AllocHGlobal(accentStructSize);
+                Marshal.StructureToPtr(accent, accentPtr, false);
 
-            SetWindowCompositionAttribute(windowHelper.Handle, ref data);
+                var data = new WindowCompositionAttributeData
+                {
+                    Attribute = WindowCompositionAttribute.WCA_ACCENT_POLICY,
+                    SizeOfData = accentStructSize,
+                    Data = accentPtr
+                };
 
-            Marshal.FreeHGlobal(accentPtr);
+                int ret = SetWindowCompositionAttribute(windowHelper.Handle, ref data);
+                return ret != 0;
+            }
+            finally
+            {
+                if (accentPtr != IntPtr.Zero)
+                    Marshal.FreeHGlobal(accentPtr);
+            }
         }
     }
 }

@@ -57,25 +57,7 @@ namespace XMeter2
         {
             get
             {
-                var name = IntPtr.Zero;
-                uint colorType;
-
-                try
-                {
-                    name = Marshal.StringToHGlobalUni("Immersive" + colorName);
-                    colorType = UxTheme.GetImmersiveColorTypeFromName(name);
-                    if (colorType == 0xFFFFFFFF)
-                        throw new InvalidOperationException();
-                }
-                finally
-                {
-                    if (name != IntPtr.Zero)
-                    {
-                        Marshal.FreeHGlobal(name);
-                    }
-                }
-
-                return this[colorType];
+                return this[GetColorType(colorName)];
             }
         }
 
@@ -94,6 +76,36 @@ namespace XMeter2
                 );
             }
         }
+
+        public uint GetColorType(string colorName)
+        {
+            var name = IntPtr.Zero;
+            uint colorType;
+
+            try
+            {
+                name = Marshal.StringToHGlobalUni("Immersive" + colorName);
+                colorType = UxTheme.GetImmersiveColorTypeFromName(name);
+                return colorType;
+            }
+            finally
+            {
+                if (name != IntPtr.Zero)
+                {
+                    Marshal.FreeHGlobal(name);
+                }
+            }
+        }
+
+        public uint GetRawColor(uint colorType)
+        {
+            return UxTheme.GetImmersiveColorFromColorSetEx(_colorSet, colorType, false, 0);
+        }
+        public uint GetRawColor(string colorName)
+        {
+            return GetRawColor(GetColorType(colorName));
+        }
+
 
         private AccentColorSet(uint colorSet, bool active)
         {
