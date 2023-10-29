@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -7,12 +6,10 @@ namespace XMeter2
 {
     public class USizeConverter : IValueConverter
     {
-        public static string FormatUSize(ulong bytes)
+        public static string FormatUSize(double dbytes)
         {
-            double dbytes = bytes;
-
-            if (bytes < 1024)
-                return $"{bytes} B/s";
+            if (dbytes < 1024)
+                return $"{dbytes:#0.00} B/s";
 
             dbytes /= 1024.0;
 
@@ -22,17 +19,17 @@ namespace XMeter2
             dbytes /= 1024.0;
 
             if (dbytes < 1024)
-                return $"{dbytes:#0.00} MBs/s";
+                return $"{dbytes:#0.00} MB/s";
 
             dbytes /= 1024.0;
 
             // Maybe... someday...
-            return $"{dbytes:#0.00} GBs/s";
+            return $"{dbytes:#0.00} GB/s";
         }
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return FormatUSize(value as ulong? ?? 0);
+            return FormatUSize(value as double? ?? 0);
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

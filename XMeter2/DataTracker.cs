@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Management;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,173 +19,184 @@ namespace XMeter2
 
         public const double MaxSecondSpan = 3600;
 
-        private readonly Dictionary<string, ulong> PrevLastSend = new Dictionary<string, ulong>();
-        private readonly Dictionary<string, ulong> PrevLastRecv = new Dictionary<string, ulong>();
-        private readonly Dictionary<string, DateTime> PrevLastStamp = new Dictionary<string, DateTime>();
+        private struct TimeEntry
+        {
+            public DateTime TimeStamp;
+            public ulong BytesSent;
+            public ulong BytesRecv;
 
-        public LinkedList<(DateTime TimeStamp, ulong Bytes)> SendPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
-        public LinkedList<(DateTime TimeStamp, ulong Bytes)> RecvPoints { get; } = new LinkedList<(DateTime TimeStamp, ulong Bytes)>();
+            public TimeEntry(DateTime timeStamp, ulong bytesSent, ulong bytesRecv)
+            {
+                TimeStamp = timeStamp;
+                BytesSent = bytesSent;
+                BytesRecv = bytesRecv;
+            }
 
-        public (ulong send, ulong recv) CurrentSpeed =>
-            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.Last.Value.Bytes, RecvPoints.Last.Value.Bytes) : (0, 0);
-        public (DateTime send, DateTime recv) CurrentTime =>
-            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.Last.Value.TimeStamp, RecvPoints.Last.Value.TimeStamp) : (DateTime.Now, DateTime.Now);
+            internal void Deconstruct(out DateTime time, out ulong sent, out ulong recv)
+            {
+                time = TimeStamp;
+                sent = BytesSent;
+                recv = BytesRecv;
+            }
 
-        public (DateTime send, DateTime recv) FirstTime => 
-            (SendPoints.Count > 0 && RecvPoints.Count > 0) ? (SendPoints.First.Value.TimeStamp, RecvPoints.First.Value.TimeStamp) : (DateTime.Now, DateTime.Now);
+            public static implicit operator TimeEntry((DateTime, ulong, ulong) value)
+            {
+                return new TimeEntry(value.Item1, value.Item2, value.Item3);
+            }
+        }
 
-        public (ulong send, ulong recv) MaxSpeed => (SendPoints.Count > 0 ? (SendPoints.Select(s => s.Bytes).Max(), RecvPoints.Select(s => s.Bytes).Max()) : (0,0));
+        private readonly Dictionary<string, LinkedList<TimeEntry>> Adapters 
+            = new Dictionary<string, LinkedList<TimeEntry>>();
+
+        public DateTime FirstTime => Adapters.Count > 0 ? Adapters.Values.Min(_points => (_points.Count > 0) ? _points.First.Value.TimeStamp : DateTime.Now) : DateTime.Now;
+        public DateTime LastTime => Adapters.Count > 0 ? Adapters.Values.Max(_points => (_points.Count > 0) ? _points.Last.Value.TimeStamp : DateTime.Now) : DateTime.Now;
 
         public void FetchData()
         {
-            var maxStamp = UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec);
-
-            void AddData(LinkedList<(DateTime TimeStamp, ulong Bytes)> points, ulong bytesPerSec)
+            var unseen = new HashSet<string>(Adapters.Keys);
+            foreach (ManagementObject adapter in Searcher.Get())
             {
-                points.AddLast((maxStamp, bytesPerSec));
+                var name = (string)adapter["Name"];
+                var recv = (ulong)adapter["BytesReceivedPerSec"];
+                var sent = (ulong)adapter["BytesSentPerSec"];
+                var time = DateTime.FromBinary((long)(ulong)adapter["Timestamp_Sys100NS"]).AddYears(1600);
+
+                var lastRecv = recv;
+                var lastSent = sent;
+                var lastTime = time;
+                if (Adapters.TryGetValue(name, out var points))
+                {
+                    (lastTime, lastSent, lastRecv) = points.Last.Value;
+                }
+                else
+                {
+                    Adapters[name] = points = new LinkedList<TimeEntry>();
+                }
+
+                if (points.Count > 0 && time <= points.Last.Value.TimeStamp)
+                    continue;
+
+                var diffRecv = recv - lastRecv;
+                var diffSent = sent - lastSent;
+                var diffTime = time - lastTime;
+
+                points.AddLast((time, sent, recv));
 
                 var totalSpan = points.Last.Value.TimeStamp - points.First.Value.TimeStamp;
-                while (totalSpan.TotalSeconds > MaxSecondSpan && points.Count > 1)
+                while (totalSpan.TotalSeconds > MaxSecondSpan && points.Count > 2)
                 {
                     points.RemoveFirst();
                     totalSpan = points.Last.Value.TimeStamp - points.First.Value.TimeStamp;
                 }
+
+                unseen.Remove(name);
             }
 
-            AddData(SendPoints, bytesSentPerSec);
-            AddData(RecvPoints, bytesReceivedPerSec);
+            foreach (var name in unseen)
+                Adapters.Remove(name);
         }
 
-        private DateTime UpdateNetwork(out ulong bytesReceivedPerSec, out ulong bytesSentPerSec)
+        public (double speedSend, double speedRecv) GetMaxSpeedBetween(DateTime startTime, DateTime endTime)
         {
-            var maxStamp = DateTime.MinValue;
+            if (Adapters.Count == 0 || startTime >= endTime)
+                return (0, 0);
 
-            bytesReceivedPerSec = 0;
-            bytesSentPerSec = 0;
-
-            foreach (ManagementObject adapter in Searcher.Get())
+            double accSent = 0;
+            double accRecv = 0;
+            foreach(var points in Adapters.Values)
             {
-                var name = (string)adapter["Name"];
-                var recv = adapter["BytesReceivedPerSec"];
-                var sent = adapter["BytesSentPerSec"];
-                var curStamp = DateTime.FromBinary((long)(ulong)adapter["Timestamp_Sys100NS"]).AddYears(1600);
-
-                if (curStamp > maxStamp)
-                    maxStamp = curStamp;
-
-                // XP seems to have uint32's there, but win7 has uint64's
-                var curRecv = recv as uint? ?? (ulong)recv;
-                var curSend = sent as uint? ?? (ulong)sent;
-
-                var lstRecv = curRecv;
-                var lstSend = curSend;
-                var lstStamp = curStamp;
-
-                if (PrevLastRecv.ContainsKey(name)) lstRecv = PrevLastRecv[name];
-                if (PrevLastSend.ContainsKey(name)) lstSend = PrevLastSend[name];
-                if (PrevLastStamp.ContainsKey(name)) lstStamp = PrevLastStamp[name];
-
-                var diffRecv = curRecv - lstRecv;
-                var diffSend = curSend - lstSend;
-                var diffStamp = curStamp - lstStamp;
-
-                PrevLastRecv[name] = curRecv;
-                PrevLastSend[name] = curSend;
-                PrevLastStamp[name] = curStamp;
-
-                if (diffStamp <= TimeSpan.Zero)
+                if (points.Count < 2)
                     continue;
 
-                var diffSeconds = diffStamp.TotalSeconds;
-
-                if (diffSeconds > MaxSecondSpan)
+                if (startTime > points.Last.Value.TimeStamp || endTime < points.First.Value.TimeStamp)
                     continue;
 
-                bytesReceivedPerSec += (ulong)(diffRecv / diffSeconds);
-                bytesSentPerSec += (ulong)(diffSend / diffSeconds);
+                var start = points.First;
+                while (start.Next.Value.TimeStamp < startTime && start.Next != null)
+                    start = start.Next;
+
+                var end = start;
+                while (end.Value.TimeStamp < endTime && end.Next != null)
+                    end = end.Next;
+                var endNext = end.Next ?? points.Last;
+
+#if false
+                var startNext = start.Next ?? start;
+
+                var startSent = Lerp(start.Value.TimeStamp, start.Value.BytesSent, startNext.Value.TimeStamp, startNext.Value.BytesSent, startTime);
+                var endSent = Lerp(end.Value.TimeStamp, end.Value.BytesSent, endNext.Value.TimeStamp, endNext.Value.BytesSent, endTime);
+
+                var startRecv = Lerp(start.Value.TimeStamp, start.Value.BytesRecv, startNext.Value.TimeStamp, startNext.Value.BytesRecv, startTime);
+                var endRecv = Lerp(end.Value.TimeStamp, end.Value.BytesRecv, endNext.Value.TimeStamp, endNext.Value.BytesRecv, endTime);
+                
+                accSent += (endSent - startSent) / (endTime - startTime).TotalSeconds;
+                accRecv += (endRecv - startRecv) / (endTime - startTime).TotalSeconds;
+                adapters++;
+#else
+                double maxSent = 0;
+                double maxRecv = 0;
+                for (var time = start; time != endNext; time = time.Next)
+                {
+                    var dt = (time.Next.Value.TimeStamp - time.Value.TimeStamp).TotalSeconds;
+                    var ds = (time.Next.Value.BytesSent - time.Value.BytesSent);
+                    var dr = (time.Next.Value.BytesRecv - time.Value.BytesRecv);
+
+                    var ss = dt > 0 ? ds / dt : 0;
+                    var sr = dt > 0 ? dr / dt : 0;
+
+                    maxSent = Math.Max(maxSent, ss);
+                    maxRecv = Math.Max(maxRecv, sr);
+                }
+
+                accSent += maxSent;
+                accRecv += maxRecv;
+#endif
             }
 
-            return maxStamp;
+            return (accSent, accRecv);
         }
 
-        public DataTracker Simplify(int maxPoints)
+        internal (double, double) GetMaxSpeed()
         {
-            var dt = new DataTracker();
+            if (Adapters.Count == 0)
+                return (0, 0);
 
-            if (SendPoints.Count == 0)
-                return dt;
-
-            double points = SendPoints.Count;
-
-            double last = 0;
-            int at = 0;
-            DateTime atdt = DateTime.MinValue;
-            double acc = 0;
-            TimeSpan time = TimeSpan.Zero;
-            for (var current = SendPoints.Last; current != null; current = current.Previous, at++)
+            double maxSent = 0;
+            double maxRecv = 0;
+            foreach (var points in Adapters.Values)
             {
-                var prev = current.Next;
-                if (prev == null)
-                {
-                    dt.SendPoints.AddFirst(current.Value);
-                    atdt = current.Value.TimeStamp;
+                if (points.Count < 2)
                     continue;
-                }
-                var ts = prev.Value.TimeStamp - current.Value.TimeStamp;
-                var vl = prev.Value.Bytes - current.Value.Bytes;
-                acc += vl;
-                time += ts;
 
-                double prog = Math.Floor(at * points / maxPoints);
-                if (prog > last)
+                for (var start = points.First; start != points.Last; start = start.Next)
                 {
-                    dt.SendPoints.AddFirst((atdt, (ulong)(acc/time.TotalSeconds)));
-                    atdt = current.Value.TimeStamp;
-                    acc = 0;
+                    var dt = (start.Next.Value.TimeStamp - start.Value.TimeStamp).TotalSeconds;
+                    var ds = (start.Next.Value.BytesSent - start.Value.BytesSent);
+                    var dr = (start.Next.Value.BytesRecv - start.Value.BytesRecv);
+                    
+                    var ss = dt > 0 ? ds / dt : 0;
+                    var sr = dt > 0 ? dr / dt : 0;
 
-                    last = prog;
+                    maxSent = Math.Max(maxSent, ss);
+                    maxRecv = Math.Max(maxRecv, sr);
                 }
             }
-            if(time > TimeSpan.Zero)
-            {
-                dt.SendPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
-            }
 
-            last = 0;
-            at = 0;
-            atdt = DateTime.MinValue;
-            acc = 0;
-            time = TimeSpan.Zero;
-            for (var current = RecvPoints.Last; current != null; current = current.Previous, at++)
-            {
-                var prev = current.Next;
-                if (prev == null)
-                {
-                    dt.RecvPoints.AddFirst(current.Value);
-                    atdt = current.Value.TimeStamp;
-                    continue;
-                }
-                var ts = prev.Value.TimeStamp - current.Value.TimeStamp;
-                var vl = prev.Value.Bytes - current.Value.Bytes;
-                acc += vl;
-                time += ts;
+            return (maxSent, maxRecv);
+        }
 
-                double prog = Math.Floor(at * points / maxPoints);
-                if (prog > last)
-                {
-                    dt.RecvPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
-                    atdt = current.Value.TimeStamp;
-                    acc = 0;
+        private ulong Lerp(DateTime time1, ulong value1, DateTime time2, ulong value2, DateTime time)
+        {
+            var abt = (time2 - time1).TotalSeconds;
+            var att = (time - time1).TotalSeconds;
+            var t = (att / abt);
+            if (t < 0)
+                return value1;
+            if (t > 1)
+                return value2;
 
-                    last = prog;
-                }
-            }
-            if (time > TimeSpan.Zero)
-            {
-                dt.RecvPoints.AddFirst((atdt, (ulong)(acc / time.TotalSeconds)));
-            }
-
-            return dt;
+            var d = (decimal)t;
+            return (ulong)(value1 + d * (value2 - value1));
         }
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -13,10 +12,7 @@ using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using XMeter2.Annotations;
-using Brush = System.Windows.Media.Brush;
-using Brushes = System.Windows.Media.Brushes;
-using Color = System.Windows.Media.Color;
-using Point = System.Windows.Point;
+using Icon = System.Drawing.Icon;
 
 namespace XMeter2
 {
@@ -39,10 +35,10 @@ namespace XMeter2
             DecelerationRatio = 1
         };
 
-        private ulong _upSpeed;
-        private ulong _downSpeed;
-        private ulong _downSpeedMax;
-        private ulong _upSpeedMax;
+        private double _upSpeed;
+        private double _downSpeed;
+        private double _downSpeedMax;
+        private double _upSpeedMax;
         private string _startTime;
         private string _endTime;
         private Brush _popupBackground;
@@ -76,7 +72,7 @@ namespace XMeter2
             }
         }
 
-        public ulong UpSpeed
+        public double UpSpeed
         {
             get => _upSpeed;
             set
@@ -87,7 +83,7 @@ namespace XMeter2
             }
         }
 
-        public ulong UpSpeedMax
+        public double UpSpeedMax
         {
             get => _upSpeedMax;
             set
@@ -98,7 +94,7 @@ namespace XMeter2
             }
         }
 
-        public ulong DownSpeed
+        public double DownSpeed
         {
             get => _downSpeed;
             set
@@ -109,7 +105,7 @@ namespace XMeter2
             }
         }
 
-        public ulong DownSpeedMax
+        public double DownSpeedMax
         {
             get => _downSpeedMax;
             set
@@ -345,11 +341,11 @@ namespace XMeter2
         {
             DataTracker.Instance.FetchData();
 
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.CurrentSpeed;
+            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
             UpSpeed = sendSpeed;
             DownSpeed = recvSpeed;
 
-            var (sendMax, recvMax) = DataTracker.Instance.MaxSpeed;
+            var (sendMax, recvMax) = DataTracker.Instance.GetMaxSpeed();
             UpSpeedMax = sendMax;
             DownSpeedMax = recvMax;
 
@@ -365,12 +361,11 @@ namespace XMeter2
 
         private void UpdateTime()
         {
-            var (sendTimeLast, recvTimeLast) = DataTracker.Instance.CurrentTime;
-            var (sendTimeFirst, recvTimeFirst) = DataTracker.Instance.FirstTime;
+            var timeLast = DateTime.Now;
+            var timeFirst = DataTracker.Instance.FirstTime;
 
-            var upTime = (sendTimeLast - sendTimeFirst).TotalSeconds;
-            var downTime = (recvTimeLast - recvTimeFirst).TotalSeconds;
-            var spanSeconds = Math.Min(Graph.ActualWidth, Math.Max(upTime, downTime));
+            var time = (timeLast - timeFirst).TotalSeconds;
+            var spanSeconds = Math.Min(Graph.ActualWidth, time);
 
             var currentCheck = DateTime.Now;
             StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss", CultureInfo.CurrentUICulture);
@@ -379,7 +374,7 @@ namespace XMeter2
 
         private void UpdateIcon()
         {
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.CurrentSpeed;
+            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
             var sendActivity = sendSpeed > 0;
             var recvActivity = recvSpeed > 0;
 
@@ -405,23 +400,35 @@ namespace XMeter2
         {
             Graph.Children.Clear();
 
-            int maxPoints = (int)(Graph.ActualWidth / 10);
-            //DataTracker copy = DataTracker.Instance.Simplify(maxPoints);
-            //DataTracker copy = DataTracker.Instance.Simplify(4);
-            var copy = DataTracker.Instance;
+            var data = DataTracker.Instance;
 
-            var (sendSpeedMax, recvSpeedMax) = copy.MaxSpeed;
+            int intervals = (int)(Graph.ActualWidth / 5);
+            double timePerInterval = 2;
 
-            var sqUp = Math.Max(32, Math.Sqrt(sendSpeedMax));
-            var sqDown = Math.Max(32, Math.Sqrt(recvSpeedMax));
-            var max2 = sqDown + sqUp;
-            var maxUp = max2 * sendSpeedMax / sqUp;
-            var maxDown = max2 * recvSpeedMax / sqDown;
+            var time1 = data.FirstTime;
+            var time2 = data.LastTime;
 
-            BuildPolygon(copy.SendPoints, (ulong) maxUp, 255, 24, 32, true);
-            BuildPolygon(copy.RecvPoints, (ulong) maxDown, 48, 48, 255,  false);
+            if ((time2-time1).TotalSeconds > (intervals * timePerInterval))
+            {
+                time1 = time2.AddSeconds(-intervals * timePerInterval);
+            }
 
-            var yy = sqDown * Graph.ActualHeight / max2;
+            double yy = 0.5 * Graph.ActualHeight;
+
+            var (sendSpeedMax, recvSpeedMax) = data.GetMaxSpeedBetween(time1, time2);
+            if (sendSpeedMax > 0 || recvSpeedMax > 0)
+            {
+                var sqUp = Math.Max(32, Math.Sqrt(sendSpeedMax));
+                var sqDown = Math.Max(32, Math.Sqrt(recvSpeedMax));
+                var max2 = sqDown + sqUp;
+                var maxUp = max2 * sendSpeedMax / sqUp;
+                var maxDown = max2 * recvSpeedMax / sqDown;
+                yy = sqDown * Graph.ActualHeight / max2;
+
+                BuildPolygon(data, time1, time2, intervals, maxUp, 255, 24, 32, true, p => p.Item1);
+                BuildPolygon(data, time1, time2, intervals, maxDown, 48, 48, 255, false, p => p.Item2);
+            }
+
             var line = new Line
             {
                 X1 = 0,
@@ -439,41 +446,46 @@ namespace XMeter2
             GraphUp.Margin = new Thickness(0, yy, 0, 0);
         }
 
-        private void BuildPolygon(LinkedList<(DateTime TimeStamp, ulong Bytes)> points, ulong max, byte r, byte g, byte b, bool up)
+        private void BuildPolygon(DataTracker data, DateTime time1, DateTime time2, int intervals, double max, byte r, byte g, byte b, bool up,
+            Func<(double,double), double> fieldGetter)
         {
-            if (points.Count == 0)
+            if (intervals == 0 || time1 >= time2)
                 return;
 
             var bottom = Graph.ActualHeight;
             var right = Graph.ActualWidth;
 
-            var lastTime = points.Last.Value.TimeStamp;
-
-            var elapsed = (lastTime - points.First.Value.TimeStamp).TotalSeconds;
-
-            var scale = 1.0;
-            if (elapsed > 0 && elapsed < Graph.ActualWidth)
-                scale = Graph.ActualWidth / elapsed;
-
             var polygon = new Polyline();
-            polygon.Points.Add(new Point(right, up ? bottom : 0));
-
-            for (var current = points.Last; current != null; current = current.Previous)
+            polygon.Points.Add(new Point(0, up ? bottom : 0));
+            for (int i=0;i<intervals;i++)
             {
-                var td = (lastTime - current.Value.TimeStamp).TotalSeconds;
+                double dt1 = i / (double)intervals;
+                var t1 = Lerp(time1, time2, dt1);
 
-                var xx = right - td * scale;
-                var yy = current.Value.Bytes * Graph.ActualHeight / max;
+                double dt2 = (i+1) / (double)intervals;
+                var t2 = Lerp(time1, time2, dt2);
 
-                polygon.Points.Add(new Point(xx, up ? bottom - yy : yy));
+                var x1 = dt1 * right;
+                var x2 = dt2 * right;
+
+                var values = data.GetMaxSpeedBetween(t1, t2);
+                var speed = fieldGetter(values);
+                var yy = speed * bottom / max;
+
+                polygon.Points.Add(new Point(x1, up ? bottom - yy : yy));
+                polygon.Points.Add(new Point(x2, up ? bottom - yy : yy));
             }
-
-            polygon.Points.Add(new Point(right - elapsed * scale, up ? bottom : 0));
+            polygon.Points.Add(new Point(right, up ? bottom : 0));
 
             polygon.Stroke = new SolidColorBrush(Color.FromArgb(160, r, g, b));
             polygon.StrokeThickness = 2;
             polygon.Fill = new SolidColorBrush(Color.FromArgb(64, r, g, b));
             Graph.Children.Add(polygon);
+        }
+
+        private DateTime Lerp(DateTime time1, DateTime time2, double dt)
+        {
+            return time1.AddSeconds(dt * (time2 - time1).TotalSeconds);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
