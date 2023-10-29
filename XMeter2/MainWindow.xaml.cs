@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
@@ -187,8 +188,11 @@ namespace XMeter2
 
         public MainWindow()
         {
-            var ass = Application.Current.MainWindow.GetType().Assembly.GetName();
-            MenuTitle = $"XMeter v{ass.Version}";
+            Visibility = Visibility.Hidden;
+
+            var assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetCustomAttributes<AssemblyInformationalVersionAttribute>().Select(x => x.InformationalVersion).FirstOrDefault();
+            MenuTitle = $"XMeter v{version}";
 
             InitializeComponent();
 

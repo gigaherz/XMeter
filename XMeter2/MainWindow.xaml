@@ -67,7 +67,7 @@
                                 </TextBlock>
                             </Label.Content>
                         </Label>
-                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="/Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
                         <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
                             <Label.Content>
                                 <TextBlock>
@@ -126,7 +126,7 @@
                                 </TextBlock>
                             </Label.Content>
                         </Label>
-                        <Image Grid.Column="1" VerticalAlignment="Center" Source="Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
+                        <Image Grid.Column="1" VerticalAlignment="Center" Source="/Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
                         <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" Foreground="{Binding TextColor}" Effect="{StaticResource TextShadow}">
                             <Label.Content>
                                 <TextBlock>

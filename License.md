@@ -1,4 +1,4 @@
-Copyright (c) 2017, David Quintana <gigaherz@gmail.com>
+Copyright (c) 2023, David Quintana <gigaherz@gmail.com>
 
 All rights reserved.
 

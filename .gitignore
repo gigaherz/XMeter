@@ -5,10 +5,8 @@
 /XMeter/publish
 /XMeterSetup/Debug
 /XMeterSetup/Release
-/XMeter2/bin/Debug
-/XMeter2/bin/Release
-/XMeter2/obj/Debug
-/XMeter2/obj/Release
+/XMeter2/bin
+/XMeter2/obj
 /packages
 /*.rar
 /*.exe
@@ -17,3 +15,6 @@
 *.DotSettings
 *.ReSharper
 .vs
+/Screenshot.png
+/XMeter2.Setup/Debug
+/XMeter2.Setup/Release
