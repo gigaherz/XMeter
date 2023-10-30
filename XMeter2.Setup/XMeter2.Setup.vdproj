@@ -50,6 +50,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
         "Release"
@@ -205,9 +213,9 @@
         "Product"
         {
         "Name" = "8:Microsoft Visual Studio"
-        "ProductName" = "8:XMeter 2"
+        "ProductName" = "8:XMeter 3"
         "ProductCode" = "8:{2C8AE13B-1911-4F4F-8548-577F5EB53737}"
-        "PackageCode" = "8:{37478ED5-5B8C-4944-82A6-0ABAFDF6FDF5}"
+        "PackageCode" = "8:{74F0AB0D-A9C9-48B4-AFD5-187B36467D42}"
         "UpgradeCode" = "8:{8D7A15E1-5DDE-4BA4-997F-CC4DEB24A44C}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -218,7 +226,7 @@
         "Manufacturer" = "8:gigaeherz"
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
-        "Title" = "8:XMeter2.Setup"
+        "Title" = "8:XMeter 3 Setup"
         "Subject" = "8:"
         "ARPCONTACT" = "8:gigaherz"
         "Keywords" = "8:"
@@ -329,7 +337,21 @@
         {
             "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_312258E4B27844C6BC30BC200220388C"
             {
-            "Name" = "8:XMeter 2"
+            "Name" = "8:XMeter 3"
+            "Arguments" = "8:"
+            "Description" = "8:"
+            "ShowCmd" = "3:1"
+            "IconIndex" = "3:32512"
+            "Transitive" = "11:FALSE"
+            "Target" = "8:_54CD57D9ACF04D3FB19FF552C272511A"
+            "Folder" = "8:_B79137718301459181EFBC780ED07E63"
+            "WorkingFolder" = "8:_89750825A6144DAEB367A2C7B28247EB"
+            "Icon" = "8:_54CD57D9ACF04D3FB19FF552C272511A"
+            "Feature" = "8:"
+            }
+            "{970C0BB2-C7D0-45D7-ABFA-7EC378858BC0}:_B44D9E048D6844F08AD164D94065C1BA"
+            {
+            "Name" = "8:XMeter 3"
             "Arguments" = "8:"
             "Description" = "8:"
             "ShowCmd" = "3:1"
@@ -580,8 +602,8 @@
                             "Type" = "3:3"
                             "ContextData" = "8:"
                             "Attributes" = "3:0"
-                            "Setting" = "3:1"
-                            "Value" = "8:#1202"
+                            "Setting" = "3:2"
+                            "Value" = "8:This software is licensed under the 3-clause BSD license, which permits redistribution and modification. See the License.md file in the installation folder for details."
                             "DefaultValue" = "8:#1202"
                             "UsePlugInResources" = "11:TRUE"
                             }

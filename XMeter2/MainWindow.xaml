@@ -44,6 +44,7 @@
     <Grid>
         <tb:TaskbarIcon x:Name="NotificationIcon"
                         TrayLeftMouseUp="NotificationIcon_OnMouseLeftButtonUp"
+                        ToolTipText="{Binding UpDownToolTip, Mode=OneWay}"
                         NoLeftClickDelay="True">
             <tb:TaskbarIcon.ContextMenu>
                 <ContextMenu>
@@ -52,32 +53,6 @@
                     <MenuItem Header="Exit" Click="Exit_Click"/>
                 </ContextMenu>
             </tb:TaskbarIcon.ContextMenu>
-            <tb:TaskbarIcon.TrayToolTip>
-                <ToolTip Padding="2" UseLayoutRounding="True">
-                    <Grid MinWidth="200">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <Label Grid.Column="0" Padding="4,2" HorizontalContentAlignment="Right" VerticalContentAlignment="Center" >
-                            <Label.Content>
-                                <TextBlock>
-                                    <Run Text="{Binding UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
-                                </TextBlock>
-                            </Label.Content>
-                        </Label>
-                        <Image Grid.Column="1" VerticalAlignment="Center" Source="/Resources/U1D1.png" Stretch="None" SnapsToDevicePixels="True" />
-                        <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" >
-                            <Label.Content>
-                                <TextBlock>
-                                    <Run Text="{Binding DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
-                                </TextBlock>
-                            </Label.Content>
-                        </Label>
-                    </Grid>
-                </ToolTip>
-            </tb:TaskbarIcon.TrayToolTip>
         </tb:TaskbarIcon>
 
         <Grid>

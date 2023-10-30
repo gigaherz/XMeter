@@ -82,6 +82,7 @@ namespace XMeter2
                 if (value == _upSpeed) return;
                 _upSpeed = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(UpDownToolTip));
             }
         }
 
@@ -104,6 +105,7 @@ namespace XMeter2
                 if (value == _downSpeed) return;
                 _downSpeed = value;
                 OnPropertyChanged();
+                OnPropertyChanged(nameof(UpDownToolTip));
             }
         }
 
@@ -117,6 +119,8 @@ namespace XMeter2
                 OnPropertyChanged();
             }
         }
+
+        public string UpDownToolTip => USizeConverter.FormatUSize(_upSpeed) + " ◤◢ " + USizeConverter.FormatUSize(_downSpeed);
 
         public Icon TrayIcon
         {
@@ -271,7 +275,7 @@ namespace XMeter2
 
             BeginAnimation(OpacityProperty, null);
             BeginAnimation(TopProperty, null);
-            Left = SystemParameters.WorkArea.Width - Width;
+            Left = SystemParameters.WorkArea.Width - Width - (_separateFromTaskbar ? 12 : 0);
             Top = SystemParameters.WorkArea.Height;
             Opacity = 0;
 
