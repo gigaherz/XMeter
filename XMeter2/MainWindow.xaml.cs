@@ -21,8 +21,8 @@ namespace XMeter2
     {
         private readonly DispatcherTimer _timer = new DispatcherTimer();
 
-        private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(250);
-        private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(200);
+        private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(150);
+        private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(50);
         private readonly DoubleAnimation _showOpacityAnimation = new DoubleAnimation
         {
             From = 0,
@@ -50,6 +50,7 @@ namespace XMeter2
         private bool _shown;
         private Icon _icon;
         private Brush _mainText;
+        private bool _separateFromTaskbar;
 
         public string StartTime
         {
@@ -234,6 +235,11 @@ namespace XMeter2
             accent.A = 128;
             background.A = 160;
 
+            if (Natives.MakeEdgesRounded(this))
+            {
+                _separateFromTaskbar = true;
+            }
+
             if (Natives.EnableBlur(this, background))
             {
                 background = Colors.Transparent;
@@ -285,7 +291,7 @@ namespace XMeter2
             Dispatcher.BeginInvoke(new Action(() => Activate()));
 
             _showTopAnimation.From = SystemParameters.WorkArea.Height;
-            _showTopAnimation.To = SystemParameters.WorkArea.Height - Height;
+            _showTopAnimation.To = SystemParameters.WorkArea.Height - Height - (_separateFromTaskbar ? 12 : 0);
 
             DelayInvoke(ShowAnimationDelay, () => {
                 BeginAnimation(OpacityProperty, _showOpacityAnimation);

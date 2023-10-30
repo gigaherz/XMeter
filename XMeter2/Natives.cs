@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls.Primitives;
@@ -79,6 +80,43 @@ namespace XMeter2
             public int GradientColor;
             public int AnimationId;
         }
+
+        public enum DWMWINDOWATTRIBUTE
+        {
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        }
+        public enum DWM_WINDOW_CORNER_PREFERENCE
+        {
+            DWMWA_DEFAULT = 0,
+            DWMWCP_DONOTROUND = 1,
+            DWMWCP_ROUND = 2,
+            DWMWCP_ROUNDSMALL = 3,
+        }
+
+        [DllImport("dwmapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        private static extern long DwmSetWindowAttribute(IntPtr hwnd,
+                                                    DWMWINDOWATTRIBUTE attribute,
+                                                    ref DWM_WINDOW_CORNER_PREFERENCE pvAttribute,
+                                                    uint cbAttribute);
+
+        public static bool MakeEdgesRounded(MainWindow window)
+        {
+            var windowHelper = new WindowInteropHelper(window);
+            windowHelper.EnsureHandle();
+
+            return MakeEdgesRounded(windowHelper.Handle);
+        }
+
+        public static bool MakeEdgesRounded(IntPtr handle)
+        {
+            var preference = DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUND;     //change as you want
+            var ret = DwmSetWindowAttribute(handle,
+                                  DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE,
+                                  ref preference,
+                                  sizeof(uint));
+            return ret >= 0;
+        }
+
 
         internal static bool EnableBlur(MainWindow window, Color background)
         {
