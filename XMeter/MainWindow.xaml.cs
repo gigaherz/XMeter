@@ -12,10 +12,10 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using XMeter2.Annotations;
+using XMeter.Annotations;
 using Icon = System.Drawing.Icon;
 
-namespace XMeter2
+namespace XMeter
 {
     public partial class MainWindow : INotifyPropertyChanged
     {

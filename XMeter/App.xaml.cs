@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics;
 using System.Windows;
 
-namespace XMeter2
+namespace XMeter
 {
     /// <summary>
     /// Interaction logic for App.xaml

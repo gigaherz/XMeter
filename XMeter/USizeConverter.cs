@@ -2,7 +2,7 @@
 using System.Globalization;
 using System.Windows.Data;
 
-namespace XMeter2
+namespace XMeter
 {
     public class USizeConverter : IValueConverter
     {

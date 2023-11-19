@@ -7,7 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Interop;
 using System.Windows.Media;
 
-namespace XMeter2
+namespace XMeter
 {
     internal static class Natives
     {

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Windows.Input;
 
-namespace XMeter2
+namespace XMeter
 {
     public class RelayCommand : ICommand
     {

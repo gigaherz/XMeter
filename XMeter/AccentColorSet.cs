@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Windows.Media;
 
-namespace XMeter2
+namespace XMeter
 {
     internal class AccentColorSet
     {

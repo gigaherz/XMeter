@@ -2,7 +2,7 @@
 using System;
 using System.Windows;
 
-namespace XMeter2
+namespace XMeter
 {
     class SettingsManager
     {

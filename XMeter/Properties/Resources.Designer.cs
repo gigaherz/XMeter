@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace XMeter2.Properties {
+namespace XMeter.Properties {
     using System;
     
     
