@@ -1,26 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using Microsoft.Win32;
 using XMeter.Annotations;
-using Icon = System.Drawing.Icon;
 
 namespace XMeter
 {
     public partial class MainWindow : INotifyPropertyChanged
     {
-        private readonly DispatcherTimer _timer = new DispatcherTimer();
-
         private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(150);
         private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(50);
         private readonly DoubleAnimation _showOpacityAnimation = new DoubleAnimation
@@ -36,108 +27,19 @@ namespace XMeter
             DecelerationRatio = 1
         };
 
-        private double _upSpeed;
-        private double _downSpeed;
-        private double _downSpeedMax;
-        private double _upSpeedMax;
-        private string _startTime;
-        private string _endTime;
         private Brush _popupBackground;
         private Brush _accentBackground;
         private Color _popupBackgroundColor;
         private bool _isPopupOpen;
         private bool _opening;
         private bool _shown;
-        private Icon _icon;
         private Brush _mainText;
         private bool _separateFromTaskbar;
-
-        public string StartTime
-        {
-            get => _startTime;
-            set
-            {
-                if (value == _startTime) return;
-                _startTime = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string EndTime
-        {
-            get => _endTime;
-            set
-            {
-                if (value == _endTime) return;
-                _endTime = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double UpSpeed
-        {
-            get => _upSpeed;
-            set
-            {
-                if (value == _upSpeed) return;
-                _upSpeed = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(UpDownToolTip));
-            }
-        }
-
-        public double UpSpeedMax
-        {
-            get => _upSpeedMax;
-            set
-            {
-                if (value == _upSpeedMax) return;
-                _upSpeedMax = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public double DownSpeed
-        {
-            get => _downSpeed;
-            set
-            {
-                if (value == _downSpeed) return;
-                _downSpeed = value;
-                OnPropertyChanged();
-                OnPropertyChanged(nameof(UpDownToolTip));
-            }
-        }
-
-        public double DownSpeedMax
-        {
-            get => _downSpeedMax;
-            set
-            {
-                if (value == _downSpeedMax) return;
-                _downSpeedMax = value;
-                OnPropertyChanged();
-            }
-        }
-
-        public string UpDownToolTip => USizeConverter.FormatUSize(_upSpeed) + " ◤◢ " + USizeConverter.FormatUSize(_downSpeed);
-
-        public Icon TrayIcon
-        {
-            get => _icon;
-            set
-            {
-                if (ReferenceEquals(_icon, value)) return;
-                _icon = value;
-                NotificationIcon.Icon = value;
-                OnPropertyChanged();
-            }
-        }
 
         public Brush PopupBackground
         {
             get => _popupBackground;
-            private set
+            set
             {
                 if (Equals(value, _popupBackground)) return;
                 _popupBackground = value;
@@ -148,7 +50,7 @@ namespace XMeter
         public Brush AccentBackground
         {
             get => _accentBackground;
-            private set
+            set
             {
                 if (Equals(value, _accentBackground)) return;
                 _accentBackground = value;
@@ -159,7 +61,7 @@ namespace XMeter
         public Color TextShadow
         {
             get => _popupBackgroundColor;
-            private set
+            set
             {
                 if (Equals(value, _popupBackgroundColor)) return;
                 _popupBackgroundColor = value;
@@ -189,82 +91,43 @@ namespace XMeter
             }
         }
 
-        public string MenuTitle { get; }
+        public bool SeparateFromTaskbar
+        {
+            get => _separateFromTaskbar;
+            set => _separateFromTaskbar = value;
+        }
+        public SpeedViewModel Model => (Application.Current as App).Model;
 
         public MainWindow()
         {
             Visibility = Visibility.Hidden;
 
-            var assembly = Assembly.GetExecutingAssembly();
-            var version = assembly.GetCustomAttributes<AssemblyInformationalVersionAttribute>().Select(x => x.InformationalVersion).FirstOrDefault();
-            MenuTitle = $"XMeter v{version}";
-
             InitializeComponent();
-
 
             SettingsManager.ReadSettings();
 
-            _timer.Interval = TimeSpan.FromSeconds(1);
-            _timer.Tick += Timer_Tick;
-            _timer.IsEnabled = true;
-
-            SystemEvents.UserPreferenceChanging += SystemEvents_UserPreferenceChanging;
+            if (OperatingSystem.IsWindows())
+                AccentColorUtil.SetupAccentsUpdate(this);
 
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => {
 
-                UpdateAccentColor();
+                if (OperatingSystem.IsWindows())
+                    AccentColorUtil.UpdateAccentColor(this);
 
-                PerformUpdate();
                 Hide();
             }));
-        }
 
-        private void UpdateAccentColor()
-        {
-#if false
-            File.WriteAllLines(@"F:\Accents.txt", AccentColorSet.ActiveSet.GetAllColorNames().Select(s => {
-                var c = AccentColorSet.ActiveSet[s];
-                return $"{s}: {c}";
-            }));
-#endif
-            var background = AccentColorSet.ActiveSet["SystemBackground"];
-            var backgroundDark = AccentColorSet.ActiveSet["SystemBackgroundDarkTheme"];
-            var shadow = background;
-            var text = AccentColorSet.ActiveSet["SystemText"];
-            var accent = AccentColorSet.ActiveSet["SystemAccentLight3"];
-            //if (background != backgroundDark)
-            //{
-            //    accent = AccentColorSet.ActiveSet["SystemAccentDark3"];
-            //}
-            accent.A = 128;
-            background.A = 160;
 
-            if (Natives.MakeEdgesRounded(this))
+            (Application.Current as App).Model.Update += () =>
             {
-                _separateFromTaskbar = true;
-            }
+                if (!IsVisible || _opening)
+                    return;
 
-            if (Natives.EnableBlur(this, background))
-            {
-                background = Colors.Transparent;
-            }
-            PopupBackground = new SolidColorBrush(background);
-            AccentBackground = new SolidColorBrush(accent);
-            TextColor = new SolidColorBrush(text);
-            TextShadow = shadow;
+                UpdateGraphUI();
+            };
         }
 
-        private void SystemEvents_UserPreferenceChanging(object sender, UserPreferenceChangingEventArgs e)
-        {
-            UpdateAccentColor();
-        }
-
-        private void NotificationIcon_OnMouseLeftButtonUp(object sender, RoutedEventArgs routedEventArgs)
-        {
-            Popup();
-        }
-
-        private void Popup()
+        public void Popup()
         {
             UpdateGraphUI();
             _opening = true;
@@ -338,76 +201,12 @@ namespace XMeter
         {
             SettingsManager.WriteSettings();
 
-            UpdateTime();
+            (Application.Current as App).Model.UpdateTime();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             Application.Current.Shutdown();
-        }
-        
-        private void Timer_Tick(object o, EventArgs e)
-        {
-            PerformUpdate();
-        }
-
-        private void PerformUpdate()
-        {
-            DataTracker.Instance.FetchData();
-
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
-            UpSpeed = sendSpeed;
-            DownSpeed = recvSpeed;
-
-            var (sendMax, recvMax) = DataTracker.Instance.GetMaxSpeed();
-            UpSpeedMax = sendMax;
-            DownSpeedMax = recvMax;
-
-            UpdateIcon();
-
-            if (!IsVisible || _opening)
-                return;
-
-            UpdateTime();
-
-            UpdateGraphUI();
-        }
-
-        private void UpdateTime()
-        {
-            var timeLast = DateTime.Now;
-            var timeFirst = DataTracker.Instance.FirstTime;
-
-            var time = (timeLast - timeFirst).TotalSeconds;
-            var spanSeconds = Math.Min(Graph.ActualWidth, time);
-
-            var currentCheck = DateTime.Now;
-            StartTime = currentCheck.AddSeconds(-spanSeconds).ToString("HH:mm:ss", CultureInfo.CurrentUICulture);
-            EndTime = currentCheck.ToString("HH:mm:ss", CultureInfo.CurrentUICulture);
-        }
-
-        private void UpdateIcon()
-        {
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
-            var sendActivity = sendSpeed > 0;
-            var recvActivity = recvSpeed > 0;
-
-            if (sendActivity && recvActivity)
-            {
-                TrayIcon = Properties.Resources.U1D1;
-            }
-            else if (sendActivity)
-            {
-                TrayIcon = Properties.Resources.U1D0;
-            }
-            else if (recvActivity)
-            {
-                TrayIcon = Properties.Resources.U0D1;
-            }
-            else
-            {
-                TrayIcon = Properties.Resources.U0D0;
-            }
         }
 
         private void UpdateGraphUI()
@@ -420,7 +219,14 @@ namespace XMeter
             double timePerInterval = 2;
 
             var time1 = data.FirstTime;
+
             var time2 = data.LastTime;
+            //time2 = time2.Date.AddSeconds(Math.Floor(time2.TimeOfDay.TotalSeconds/timePerInterval)*timePerInterval);
+
+            if (time1 > time2)
+            {
+                return;
+            }
 
             if ((time2-time1).TotalSeconds > (intervals * timePerInterval))
             {

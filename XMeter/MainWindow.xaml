@@ -4,7 +4,6 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XMeter"
-        xmlns:tb="http://www.hardcodet.net/taskbar"
         mc:Ignorable="d"
         Title=""
         WindowStyle="None"
@@ -41,20 +40,8 @@
         <local:USizeConverter x:Key="USizeConverter" />
         <DropShadowEffect x:Key="TextShadow" BlurRadius="6" Opacity=".75" ShadowDepth="0" RenderingBias="Performance" Color="{Binding TextShadow}" />
     </Window.Resources>
-    <Grid>
-        <tb:TaskbarIcon x:Name="NotificationIcon"
-                        TrayLeftMouseUp="NotificationIcon_OnMouseLeftButtonUp"
-                        ToolTipText="{Binding UpDownToolTip, Mode=OneWay}"
-                        NoLeftClickDelay="True">
-            <tb:TaskbarIcon.ContextMenu>
-                <ContextMenu>
-                    <MenuItem IsEnabled="False" Header="{Binding MenuTitle}"></MenuItem>
-                    <Separator />
-                    <MenuItem Header="Exit" Click="Exit_Click"/>
-                </ContextMenu>
-            </tb:TaskbarIcon.ContextMenu>
-        </tb:TaskbarIcon>
 
+    <Grid>
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
@@ -63,10 +50,10 @@
 
             <Grid Margin="0">
                 <Canvas Margin="0" Name="Graph" ClipToBounds="True"></Canvas>
-                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" 
+                <Label x:Name="GraphDown" Margin="0,0,0,150" Padding="2" Content="{Binding Model.DownSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}" 
                         Foreground="{Binding TextColor}" HorizontalAlignment="Left" VerticalAlignment="Bottom" Effect="{StaticResource TextShadow}">
                 </Label>
-                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding UpSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}"
+                <Label x:Name="GraphUp" Margin="0,150,0,0" Padding="2" Content="{Binding Model.UpSpeedMax, Mode=OneWay, Converter={StaticResource USizeConverter}}"
                         Foreground="{Binding TextColor}" HorizontalAlignment="Left" VerticalAlignment="Top" Effect="{StaticResource TextShadow}">
                 </Label>
             </Grid> 
@@ -80,10 +67,10 @@
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <Label FontSize="0.12in" Content="{Binding StartTime, Mode=OneWay}" Padding="8,4" Grid.Column="1" Foreground="{Binding TextColor}"
+                    <Label FontSize="0.12in" Content="{Binding Model.StartTime, Mode=OneWay}" Padding="8,4" Grid.Column="1" Foreground="{Binding TextColor}"
                            VerticalAlignment="Center" Effect="{StaticResource TextShadow}">
                     </Label>
-                    <Label FontSize="0.12in" Content="{Binding EndTime, Mode=OneWay}" Padding="8,4" Grid.Column="3" Foreground="{Binding TextColor}" 
+                    <Label FontSize="0.12in" Content="{Binding Model.EndTime, Mode=OneWay}" Padding="8,4" Grid.Column="3" Foreground="{Binding TextColor}" 
                            HorizontalContentAlignment="Right" VerticalAlignment="Center" Effect="{StaticResource TextShadow}">
                     </Label>
 
@@ -97,7 +84,7 @@
                                Foreground="{Binding TextColor}" Effect="{StaticResource TextShadow}">
                             <Label.Content>
                                 <TextBlock>
-                                    <Run Text="{Binding UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                    <Run Text="{Binding Model.UpSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
                                 </TextBlock>
                             </Label.Content>
                         </Label>
@@ -105,7 +92,7 @@
                         <Label Grid.Column="2" Padding="4,2" VerticalContentAlignment="Center" Foreground="{Binding TextColor}" Effect="{StaticResource TextShadow}">
                             <Label.Content>
                                 <TextBlock>
-                                    <Run Text="{Binding DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
+                                    <Run Text="{Binding Model.DownSpeed, Mode=OneWay, Converter={StaticResource USizeConverter}}" />
                                 </TextBlock>
                             </Label.Content>
                         </Label>

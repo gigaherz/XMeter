@@ -4,8 +4,6 @@ VisualStudioVersion = 17.7.34221.43
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XMeter", "XMeter\XMeter.csproj", "{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}"
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "XMeter.Setup", "XMeter.Setup\XMeter.Setup.vdproj", "{D8F4A695-5B8F-43B9-ABC8-CA66B1CEB7E2}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{AD027C67-CFA4-4738-B992-0C284F15A44A}"
 	ProjectSection(SolutionItems) = preProject
 		License.md = License.md
@@ -15,17 +13,36 @@ EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
 		Release|Any CPU = Release|Any CPU
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|x64.Build.0 = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Debug|x86.Build.0 = Debug|Any CPU
 		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D8F4A695-5B8F-43B9-ABC8-CA66B1CEB7E2}.Debug|Any CPU.ActiveCfg = Debug
-		{D8F4A695-5B8F-43B9-ABC8-CA66B1CEB7E2}.Release|Any CPU.ActiveCfg = Release
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|ARM64.Build.0 = Release|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|x64.ActiveCfg = Release|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|x64.Build.0 = Release|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|x86.ActiveCfg = Release|Any CPU
+		{9B2F769B-8A9C-4A7E-BE72-35D43EAAEC8A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5BD3EC77-C596-445C-B789-01CCD77361B0}
 	EndGlobalSection
 EndGlobal

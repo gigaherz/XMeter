@@ -2,7 +2,7 @@
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "XMeter"
-!define PRODUCT_VERSION "2.0.2"
+!define PRODUCT_VERSION "3.0.0"
 !define PRODUCT_PUBLISHER "gigaherz"
 !define PRODUCT_WEB_SITE "https://github.com/gigaherz/XMeter"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\XMeter2.exe"
@@ -31,7 +31,7 @@ SetCompressor lzma
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
-!define MUI_FINISHPAGE_RUN "$INSTDIR\XMeter2.exe"
+!define MUI_FINISHPAGE_RUN "$INSTDIR\XMeter.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages

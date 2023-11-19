@@ -1,21 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Management;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace XMeter
 {
-    class DataTracker
+    partial class DataTracker
     {
         public static readonly DataTracker Instance = new DataTracker();
 
-        private static readonly ManagementObjectSearcher Searcher =
-            new ManagementObjectSearcher(
-                "SELECT Name, BytesReceivedPerSec, BytesSentPerSec, Timestamp_Sys100NS" +
-                " FROM Win32_PerfRawData_Tcpip_NetworkInterface");
+        public IDataSource dataSource = IDataSource.CreateDataSource();
 
         public const double MaxSecondSpan = 3600;
 
@@ -45,22 +38,21 @@ namespace XMeter
             }
         }
 
-        private readonly Dictionary<string, LinkedList<TimeEntry>> Adapters 
-            = new Dictionary<string, LinkedList<TimeEntry>>();
+        private readonly Dictionary<string, LinkedList<TimeEntry>> Adapters = new();
 
-        public DateTime FirstTime => Adapters.Count > 0 ? Adapters.Values.Min(_points => (_points.Count > 0) ? _points.First.Value.TimeStamp : DateTime.Now) : DateTime.Now;
-        public DateTime LastTime => Adapters.Count > 0 ? Adapters.Values.Max(_points => (_points.Count > 0) ? _points.Last.Value.TimeStamp : DateTime.Now) : DateTime.Now;
+        public DateTime FirstTime => GetTime(p => p.First);
+        public DateTime LastTime => GetTime(p => p.Last);
+
+        private DateTime GetTime(Func<LinkedList<TimeEntry>, LinkedListNode<TimeEntry>> timeFunc)
+        {
+            return Adapters.Count > 0 ? Adapters.Values.Min(_points => (_points.Count > 0) ? timeFunc(_points).Value.TimeStamp : DateTime.Now) : DateTime.Now;
+        }
 
         public void FetchData()
         {
             var unseen = new HashSet<string>(Adapters.Keys);
-            foreach (ManagementObject adapter in Searcher.Get())
+            foreach (var (name,recv,sent,time) in dataSource.ReadData())
             {
-                var name = (string)adapter["Name"];
-                var recv = (ulong)adapter["BytesReceivedPerSec"];
-                var sent = (ulong)adapter["BytesSentPerSec"];
-                var time = DateTime.FromBinary((long)(ulong)adapter["Timestamp_Sys100NS"]).AddYears(1600);
-
                 var lastRecv = recv;
                 var lastSent = sent;
                 var lastTime = time;
@@ -76,9 +68,9 @@ namespace XMeter
                 if (points.Count > 0 && time <= points.Last.Value.TimeStamp)
                     continue;
 
-                var diffRecv = recv - lastRecv;
-                var diffSent = sent - lastSent;
-                var diffTime = time - lastTime;
+                //var diffRecv = recv - lastRecv;
+                //var diffSent = sent - lastSent;
+                //var diffTime = time - lastTime;
 
                 points.AddLast((time, sent, recv));
 

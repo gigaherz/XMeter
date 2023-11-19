@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using System.Windows.Media;
 
 namespace XMeter
 {
+    [SupportedOSPlatform("windows")]
     internal class AccentColorSet
     {
         private static AccentColorSet[] _allSets;
@@ -19,7 +21,7 @@ namespace XMeter
                 if (_allSets != null)
                     return _allSets;
 
-                var colorSetCount = UxTheme.GetImmersiveColorSetCount();
+                var colorSetCount = WindowsNatives.GetImmersiveColorSetCount();
 
                 var colorSets = new List<AccentColorSet>();
                 for (uint i = 0; i < colorSetCount; i++)
@@ -38,7 +40,7 @@ namespace XMeter
         {
             get
             {
-                var activeSet = UxTheme.GetImmersiveUserColorSetPreference(false, false);
+                var activeSet = WindowsNatives.GetImmersiveUserColorSetPreference(false, false);
                 ActiveSet = AllSets[Math.Min(activeSet, AllSets.Length - 1)];
                 return _activeSet;
             }
@@ -65,7 +67,7 @@ namespace XMeter
         {
             get
             {
-                var nativeColor = UxTheme.GetImmersiveColorFromColorSetEx(_colorSet, colorType, false, 0);
+                var nativeColor = WindowsNatives.GetImmersiveColorFromColorSetEx(_colorSet, colorType, false, 0);
                 //if (nativeColor == 0)
                 //    throw new InvalidOperationException();
                 return Color.FromArgb(
@@ -85,7 +87,7 @@ namespace XMeter
             try
             {
                 name = Marshal.StringToHGlobalUni("Immersive" + colorName);
-                colorType = UxTheme.GetImmersiveColorTypeFromName(name);
+                colorType = WindowsNatives.GetImmersiveColorTypeFromName(name);
                 return colorType;
             }
             finally
@@ -99,7 +101,7 @@ namespace XMeter
 
         public uint GetRawColor(uint colorType)
         {
-            return UxTheme.GetImmersiveColorFromColorSetEx(_colorSet, colorType, false, 0);
+            return WindowsNatives.GetImmersiveColorFromColorSetEx(_colorSet, colorType, false, 0);
         }
         public uint GetRawColor(string colorName)
         {
@@ -121,7 +123,7 @@ namespace XMeter
             var allColorNames = new List<string>();
             for (uint i = 0; i < 0xFFF; i++)
             {
-                var typeNamePtr = UxTheme.GetImmersiveColorNamedTypeByIndex(i);
+                var typeNamePtr = WindowsNatives.GetImmersiveColorNamedTypeByIndex(i);
                 if (typeNamePtr == IntPtr.Zero)
                     continue;
 
@@ -130,25 +132,6 @@ namespace XMeter
             }
 
             return allColorNames;
-        }
-
-        static class UxTheme
-        {
-            [DllImport("uxtheme.dll", EntryPoint = "#98", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-            public static extern uint GetImmersiveUserColorSetPreference(bool forceCheckRegistry, bool skipCheckOnFail);
-
-            [DllImport("uxtheme.dll", EntryPoint = "#94", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-            public static extern uint GetImmersiveColorSetCount();
-
-            [DllImport("uxtheme.dll", EntryPoint = "#95", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-            public static extern uint GetImmersiveColorFromColorSetEx(uint immersiveColorSet, uint immersiveColorType,
-                bool ignoreHighContrast, uint highContrastCacheMode);
-
-            [DllImport("uxtheme.dll", EntryPoint = "#96", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-            public static extern uint GetImmersiveColorTypeFromName(IntPtr name);
-
-            [DllImport("uxtheme.dll", EntryPoint = "#100", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-            public static extern IntPtr GetImmersiveColorNamedTypeByIndex(uint index);
         }
     }
 }
