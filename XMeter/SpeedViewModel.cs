@@ -1,7 +1,6 @@
 ﻿using H.NotifyIcon;
 using System;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -9,6 +8,8 @@ using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
 using XMeter.Annotations;
+using XMeter.Common;
+using XMeter.Util;
 
 namespace XMeter
 {
@@ -105,7 +106,8 @@ namespace XMeter
             _timer.Tick += Timer_Tick;
             _timer.IsEnabled = true;
 
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => {
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() =>
+            {
 
                 PerformUpdate();
             }));

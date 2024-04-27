@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Globalization;
 using System.Windows.Data;
+using XMeter.Windows;
 
-namespace XMeter
+namespace XMeter.Util
 {
     public class USizeConverter : IValueConverter
     {
@@ -29,7 +30,7 @@ namespace XMeter
 
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
-            return FormatUSize(value as double? ?? 0);
+            return FormatUSize(System.Convert.ToDouble(value ?? 0));
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:XMeter"
+        xmlns:util="clr-namespace:XMeter.Util"
         mc:Ignorable="d"
         Title=""
         WindowStyle="None"
@@ -37,7 +38,7 @@
         </WindowChrome>
     </WindowChrome.WindowChrome>
     <Window.Resources>
-        <local:USizeConverter x:Key="USizeConverter" />
+        <util:USizeConverter x:Key="USizeConverter" />
         <DropShadowEffect x:Key="TextShadow" BlurRadius="6" Opacity=".75" ShadowDepth="0" RenderingBias="Performance" Color="{Binding TextShadow}" />
     </Window.Resources>
 

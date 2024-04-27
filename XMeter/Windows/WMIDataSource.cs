@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Management;
 using System.Runtime.Versioning;
-using static XMeter.DataTracker;
+using XMeter.Common;
+using static XMeter.Common.DataTracker;
 
-namespace XMeter
+namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
     public class WMIDataSource : IDataSource

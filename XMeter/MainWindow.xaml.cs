@@ -7,6 +7,8 @@ using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 using XMeter.Annotations;
+using XMeter.Common;
+using XMeter.Windows;
 
 namespace XMeter
 {
@@ -104,15 +106,15 @@ namespace XMeter
 
             InitializeComponent();
 
-            SettingsManager.ReadSettings();
+            SettingsManager.Settings.ReadSettings();
 
             if (OperatingSystem.IsWindows())
-                AccentColorUtil.SetupAccentsUpdate(this);
+                WindowsAccentColors.SetupAccentsUpdate(this);
 
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, new Action(() => {
 
                 if (OperatingSystem.IsWindows())
-                    AccentColorUtil.UpdateAccentColor(this);
+                    WindowsAccentColors.UpdateAccentColor(this);
 
                 Hide();
             }));
@@ -199,7 +201,7 @@ namespace XMeter
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            SettingsManager.WriteSettings();
+            SettingsManager.Settings.WriteSettings();
 
             (Application.Current as App).Model.UpdateTime();
         }

@@ -2,7 +2,7 @@
 using System.Diagnostics;
 using System.Windows.Input;
 
-namespace XMeter
+namespace XMeter.Util
 {
     public class RelayCommand : ICommand
     {
@@ -22,9 +22,7 @@ namespace XMeter
 
         public RelayCommand(Action<object> execute, Predicate<object> canExecute)
         {
-            if (execute == null) 
-                throw new ArgumentNullException("execute");
-            this.execute = execute;
+            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
             this.canExecute = canExecute;
         }
 

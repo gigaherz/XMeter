@@ -1,16 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using XMeter.Windows;
 
-namespace XMeter
+namespace XMeter.Common
 {
     partial class DataTracker
     {
+        public const double MaxSecondSpan = 3600;
+
         public static readonly DataTracker Instance = new DataTracker();
 
-        public IDataSource dataSource = IDataSource.CreateDataSource();
+        public IDataSource dataSource = CreateDataSource();
 
-        public const double MaxSecondSpan = 3600;
+        public static IDataSource CreateDataSource()
+        {
+            if (OperatingSystem.IsWindows())
+            {
+                return WMIDataSource.Construct();
+            }
+            else
+            {
+                throw new NotImplementedException("Data parsing not implemented for platform " + RuntimeInformation.OSDescription);
+            }
+        }
 
         private struct TimeEntry
         {
@@ -45,32 +59,21 @@ namespace XMeter
 
         private DateTime GetTime(Func<LinkedList<TimeEntry>, LinkedListNode<TimeEntry>> timeFunc)
         {
-            return Adapters.Count > 0 ? Adapters.Values.Min(_points => (_points.Count > 0) ? timeFunc(_points).Value.TimeStamp : DateTime.Now) : DateTime.Now;
+            return Adapters.Count > 0 ? Adapters.Values.Min(_points => _points.Count > 0 ? timeFunc(_points).Value.TimeStamp : DateTime.Now) : DateTime.Now;
         }
 
         public void FetchData()
         {
             var unseen = new HashSet<string>(Adapters.Keys);
-            foreach (var (name,recv,sent,time) in dataSource.ReadData())
+            foreach (var (name, recv, sent, time) in dataSource.ReadData())
             {
-                var lastRecv = recv;
-                var lastSent = sent;
-                var lastTime = time;
-                if (Adapters.TryGetValue(name, out var points))
-                {
-                    (lastTime, lastSent, lastRecv) = points.Last.Value;
-                }
-                else
+                if (!Adapters.TryGetValue(name, out var points))
                 {
                     Adapters[name] = points = new LinkedList<TimeEntry>();
                 }
 
                 if (points.Count > 0 && time <= points.Last.Value.TimeStamp)
                     continue;
-
-                //var diffRecv = recv - lastRecv;
-                //var diffSent = sent - lastSent;
-                //var diffTime = time - lastTime;
 
                 points.AddLast((time, sent, recv));
 
@@ -95,7 +98,7 @@ namespace XMeter
 
             double accSent = 0;
             double accRecv = 0;
-            foreach(var points in Adapters.Values)
+            foreach (var points in Adapters.Values)
             {
                 if (points.Count < 2)
                     continue;
@@ -130,8 +133,8 @@ namespace XMeter
                 for (var time = start; time != endNext; time = time.Next)
                 {
                     var dt = (time.Next.Value.TimeStamp - time.Value.TimeStamp).TotalSeconds;
-                    var ds = (time.Next.Value.BytesSent - time.Value.BytesSent);
-                    var dr = (time.Next.Value.BytesRecv - time.Value.BytesRecv);
+                    var ds = time.Next.Value.BytesSent - time.Value.BytesSent;
+                    var dr = time.Next.Value.BytesRecv - time.Value.BytesRecv;
 
                     var ss = dt > 0 ? ds / dt : 0;
                     var sr = dt > 0 ? dr / dt : 0;
@@ -163,9 +166,9 @@ namespace XMeter
                 for (var start = points.First; start != points.Last; start = start.Next)
                 {
                     var dt = (start.Next.Value.TimeStamp - start.Value.TimeStamp).TotalSeconds;
-                    var ds = (start.Next.Value.BytesSent - start.Value.BytesSent);
-                    var dr = (start.Next.Value.BytesRecv - start.Value.BytesRecv);
-                    
+                    var ds = start.Next.Value.BytesSent - start.Value.BytesSent;
+                    var dr = start.Next.Value.BytesRecv - start.Value.BytesRecv;
+
                     var ss = dt > 0 ? ds / dt : 0;
                     var sr = dt > 0 ? dr / dt : 0;
 
@@ -181,7 +184,7 @@ namespace XMeter
         {
             var abt = (time2 - time1).TotalSeconds;
             var att = (time - time1).TotalSeconds;
-            var t = (att / abt);
+            var t = att / abt;
             if (t < 0)
                 return value1;
             if (t > 1)
@@ -190,5 +193,10 @@ namespace XMeter
             var d = (decimal)t;
             return (ulong)(value1 + d * (value2 - value1));
         }
+    }
+
+    public interface IDataSource
+    {
+        public IEnumerable<(string name, ulong recv, ulong sent, DateTime time)> ReadData();
     }
 }

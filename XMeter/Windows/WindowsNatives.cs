@@ -2,18 +2,30 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Text;
 using System.Windows.Interop;
 using System.Windows.Media;
 
-namespace XMeter
+namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
     internal static class WindowsNatives
     {
+        [DllImport("Shlwapi.dll", CharSet = CharSet.Auto)]
+        public static extern IntPtr StrFormatByteSize(long fileSize, [MarshalAs(UnmanagedType.LPTStr)] StringBuilder buffer, int bufferSize);
+
+        public static string FormatByteSize(long size)
+        {
+            var buffer = new StringBuilder(64);
+            StrFormatByteSize(size, buffer, 64);
+            return buffer.ToString();
+        }
+
+
         public static bool ApplicationIsActivated()
         {
             var activatedHandle = GetForegroundWindow();
-            if (activatedHandle == IntPtr.Zero)
+            if (activatedHandle == nint.Zero)
                 return false;
 
             var procId = Process.GetCurrentProcess().Id;
@@ -22,25 +34,25 @@ namespace XMeter
             return activeProcId == procId;
         }
 
-        public static bool IsWindowForeground(IntPtr handle)
+        public static bool IsWindowForeground(nint handle)
         {
             return GetForegroundWindow() != handle;
         }
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        private static extern IntPtr GetForegroundWindow();
+        private static extern nint GetForegroundWindow();
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern int GetWindowThreadProcessId(IntPtr handle, out int processId);
+        private static extern int GetWindowThreadProcessId(nint handle, out int processId);
 
         [DllImport("user32.dll")]
-        internal static extern int SetWindowCompositionAttribute(IntPtr hwnd, ref WindowCompositionAttributeData data);
+        internal static extern int SetWindowCompositionAttribute(nint hwnd, ref WindowCompositionAttributeData data);
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct WindowCompositionAttributeData
         {
             public WindowCompositionAttribute Attribute;
-            public IntPtr Data;
+            public nint Data;
             public int SizeOfData;
         }
 
@@ -50,7 +62,7 @@ namespace XMeter
             WCA_ACCENT_POLICY = 19
             // ...
         }
-        
+
         internal enum AccentState
         {
             ACCENT_DISABLED = 0,
@@ -93,7 +105,7 @@ namespace XMeter
         }
 
         [DllImport("dwmapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern long DwmSetWindowAttribute(IntPtr hwnd,
+        private static extern long DwmSetWindowAttribute(nint hwnd,
                                                     DWMWINDOWATTRIBUTE attribute,
                                                     ref DWM_WINDOW_CORNER_PREFERENCE pvAttribute,
                                                     uint cbAttribute);
@@ -106,7 +118,7 @@ namespace XMeter
             return MakeEdgesRounded(windowHelper.Handle);
         }
 
-        public static bool MakeEdgesRounded(IntPtr handle)
+        public static bool MakeEdgesRounded(nint handle)
         {
             var preference = DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUND;     //change as you want
             var ret = DwmSetWindowAttribute(handle,
@@ -119,7 +131,7 @@ namespace XMeter
 
         internal static bool EnableBlur(MainWindow window, Color background)
         {
-            return EnableBlur(window, ((uint)background.A << 24) | ((uint)background.B << 16) | ((uint)background.G << 8) | ((uint)background.R));
+            return EnableBlur(window, (uint)background.A << 24 | (uint)background.B << 16 | (uint)background.G << 8 | background.R);
         }
 
         internal static bool EnableBlur(MainWindow window, uint backgroundColor)
@@ -133,7 +145,7 @@ namespace XMeter
             accent.AccentFlags = (int)(AccentEdges.Left | AccentEdges.Top | AccentEdges.Right | AccentEdges.Bottom);
             accent.GradientColor = unchecked((int)backgroundColor);
 
-            IntPtr accentPtr = IntPtr.Zero;
+            nint accentPtr = nint.Zero;
             try
             {
                 accentPtr = Marshal.AllocHGlobal(accentStructSize);
@@ -151,7 +163,7 @@ namespace XMeter
             }
             finally
             {
-                if (accentPtr != IntPtr.Zero)
+                if (accentPtr != nint.Zero)
                     Marshal.FreeHGlobal(accentPtr);
             }
         }
@@ -168,10 +180,10 @@ namespace XMeter
             bool ignoreHighContrast, uint highContrastCacheMode);
 
         [DllImport("uxtheme.dll", EntryPoint = "#96", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern uint GetImmersiveColorTypeFromName(IntPtr name);
+        public static extern uint GetImmersiveColorTypeFromName(nint name);
 
         [DllImport("uxtheme.dll", EntryPoint = "#100", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern IntPtr GetImmersiveColorNamedTypeByIndex(uint index);
+        public static extern nint GetImmersiveColorNamedTypeByIndex(uint index);
         #endregion
     }
 }
