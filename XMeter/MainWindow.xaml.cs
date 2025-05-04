@@ -16,14 +16,14 @@ namespace XMeter
     {
         private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(150);
         private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(50);
-        private readonly DoubleAnimation _showOpacityAnimation = new DoubleAnimation
+        private readonly DoubleAnimation _showOpacityAnimation = new()
         {
             From = 0,
             To = 1,
             Duration = ShowAnimationDuration,
             DecelerationRatio = 1
         };
-        private readonly DoubleAnimation _showTopAnimation = new DoubleAnimation
+        private readonly DoubleAnimation _showTopAnimation = new()
         {
             Duration = ShowAnimationDuration,
             DecelerationRatio = 1
@@ -98,7 +98,6 @@ namespace XMeter
             get => _separateFromTaskbar;
             set => _separateFromTaskbar = value;
         }
-        public SpeedViewModel Model => (Application.Current as App).Model;
 
         public MainWindow()
         {
@@ -120,7 +119,7 @@ namespace XMeter
             }));
 
 
-            (Application.Current as App).Model.Update += () =>
+            SpeedViewModel.Instance.Update += () =>
             {
                 if (!IsVisible || _opening)
                     return;
@@ -203,7 +202,7 @@ namespace XMeter
         {
             SettingsManager.Settings.WriteSettings();
 
-            (Application.Current as App).Model.UpdateTime();
+            SpeedViewModel.Instance.UpdateTime();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
@@ -265,7 +264,7 @@ namespace XMeter
                 Y2 = yy,
                 Stroke = TextColor,
                 Opacity = .6,
-                StrokeDashArray = new DoubleCollection(new[] {1.0, 2.0}),
+                StrokeDashArray = [1.0, 2.0],
                 StrokeDashCap = PenLineCap.Flat
             };
             Graph.Children.Add(line);
@@ -274,7 +273,7 @@ namespace XMeter
             GraphUp.Margin = new Thickness(0, yy, 0, 0);
 
 
-            (Application.Current as App).Model.GraphWidth = (time2 - time1).TotalSeconds;
+            SpeedViewModel.Instance.GraphWidth = (time2 - time1).TotalSeconds;
         }
 
         private void BuildPolygon(DataTracker data, DateTime time1, DateTime time2, int intervals, double max, byte r, byte g, byte b, bool up,
@@ -328,7 +327,7 @@ namespace XMeter
             Graph.Children.Add(polygonMin);
         }
 
-        private DateTime Lerp(DateTime time1, DateTime time2, double dt)
+        private static DateTime Lerp(DateTime time1, DateTime time2, double dt)
         {
             return time1.AddSeconds(dt * (time2 - time1).TotalSeconds);
         }

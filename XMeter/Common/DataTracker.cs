@@ -10,7 +10,7 @@ namespace XMeter.Common
     {
         public const double MaxSecondSpan = 3600;
 
-        public static readonly DataTracker Instance = new DataTracker();
+        public static readonly DataTracker Instance = new();
 
         public IDataSource dataSource = CreateDataSource();
 
@@ -26,18 +26,11 @@ namespace XMeter.Common
             }
         }
 
-        private struct TimeEntry
+        private struct TimeEntry(DateTime timeStamp, ulong bytesSent, ulong bytesRecv)
         {
-            public DateTime TimeStamp;
-            public ulong BytesSent;
-            public ulong BytesRecv;
-
-            public TimeEntry(DateTime timeStamp, ulong bytesSent, ulong bytesRecv)
-            {
-                TimeStamp = timeStamp;
-                BytesSent = bytesSent;
-                BytesRecv = bytesRecv;
-            }
+            public DateTime TimeStamp = timeStamp;
+            public ulong BytesSent = bytesSent;
+            public ulong BytesRecv = bytesRecv;
 
             internal readonly void Deconstruct(out DateTime time, out ulong sent, out ulong recv)
             {
@@ -52,7 +45,7 @@ namespace XMeter.Common
             }
         }
 
-        private readonly Dictionary<string, LinkedList<TimeEntry>> Adapters = new();
+        private readonly Dictionary<string, LinkedList<TimeEntry>> Adapters = [];
 
         public DateTime FirstTime => GetTime(p => p.First);
         public DateTime LastTime => GetTime(p => p.Last);
@@ -118,19 +111,6 @@ namespace XMeter.Common
                     end = end.Next;
                 var endNext = end.Next ?? points.Last;
 
-#if false
-                var startNext = start.Next ?? start;
-
-                var startSent = Lerp(start.Value.TimeStamp, start.Value.BytesSent, startNext.Value.TimeStamp, startNext.Value.BytesSent, startTime);
-                var endSent = Lerp(end.Value.TimeStamp, end.Value.BytesSent, endNext.Value.TimeStamp, endNext.Value.BytesSent, endTime);
-
-                var startRecv = Lerp(start.Value.TimeStamp, start.Value.BytesRecv, startNext.Value.TimeStamp, startNext.Value.BytesRecv, startTime);
-                var endRecv = Lerp(end.Value.TimeStamp, end.Value.BytesRecv, endNext.Value.TimeStamp, endNext.Value.BytesRecv, endTime);
-                
-                accSent += (endSent - startSent) / (endTime - startTime).TotalSeconds;
-                accRecv += (endRecv - startRecv) / (endTime - startTime).TotalSeconds;
-                adapters++;
-#else
                 double maxSent = 0;
                 double maxRecv = 0;
                 double minSent = double.MaxValue;
@@ -159,7 +139,6 @@ namespace XMeter.Common
                     accSentMin += minSent;
                     accRecvMin += minRecv;
                 }
-#endif
             }
 
             return (accSentMax, accRecvMax, accSentMin, accRecvMin);
@@ -192,20 +171,6 @@ namespace XMeter.Common
             }
 
             return (maxSent, maxRecv);
-        }
-
-        private ulong Lerp(DateTime time1, ulong value1, DateTime time2, ulong value2, DateTime time)
-        {
-            var abt = (time2 - time1).TotalSeconds;
-            var att = (time - time1).TotalSeconds;
-            var t = att / abt;
-            if (t < 0)
-                return value1;
-            if (t > 1)
-                return value2;
-
-            var d = (decimal)t;
-            return (ulong)(value1 + d * (value2 - value1));
         }
     }
 

@@ -17,7 +17,7 @@ namespace XMeter.Windows
 
         public IEnumerable<(string name, ulong recv, ulong sent, DateTime time)> ReadData()
         {
-            foreach (ManagementObject adapter in Searcher.Get())
+            foreach (ManagementBaseObject adapter in Searcher.Get())
             {
                 var name = (string)adapter["Name"];
                 var recv = (ulong)adapter["BytesReceivedPerSec"];

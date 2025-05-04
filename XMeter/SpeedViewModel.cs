@@ -15,7 +15,9 @@ namespace XMeter
 {
     public class SpeedViewModel : DependencyObject, INotifyPropertyChanged
     {
-        private readonly DispatcherTimer _timer = new DispatcherTimer();
+        public static SpeedViewModel Instance { get; } = new();
+
+        private readonly DispatcherTimer _timer = new();
 
         private string _startTime;
         private string _endTime;

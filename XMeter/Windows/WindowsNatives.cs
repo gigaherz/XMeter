@@ -9,27 +9,18 @@ using System.Windows.Media;
 namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
-    internal static class WindowsNatives
+    internal static partial class WindowsNatives
     {
-        [DllImport("Shlwapi.dll", CharSet = CharSet.Auto)]
-        public static extern IntPtr StrFormatByteSize(long fileSize, [MarshalAs(UnmanagedType.LPTStr)] StringBuilder buffer, int bufferSize);
-
-        public static string FormatByteSize(long size)
-        {
-            var buffer = new StringBuilder(64);
-            StrFormatByteSize(size, buffer, 64);
-            return buffer.ToString();
-        }
-
-
         public static bool ApplicationIsActivated()
         {
             var activatedHandle = GetForegroundWindow();
             if (activatedHandle == nint.Zero)
                 return false;
 
-            var procId = Process.GetCurrentProcess().Id;
-            GetWindowThreadProcessId(activatedHandle, out var activeProcId);
+            var procId = Environment.ProcessId;
+            var result = GetWindowThreadProcessId(activatedHandle, out var activeProcId);
+
+            if (result == nint.Zero) return false;
 
             return activeProcId == procId;
         }
@@ -39,14 +30,14 @@ namespace XMeter.Windows
             return GetForegroundWindow() != handle;
         }
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, ExactSpelling = true)]
-        private static extern nint GetForegroundWindow();
+        [LibraryImport("user32.dll")]
+        private static partial nint GetForegroundWindow();
 
-        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern int GetWindowThreadProcessId(nint handle, out int processId);
+        [LibraryImport("user32.dll", SetLastError = true)]
+        private static partial int GetWindowThreadProcessId(nint handle, out int processId);
 
-        [DllImport("user32.dll")]
-        internal static extern int SetWindowCompositionAttribute(nint hwnd, ref WindowCompositionAttributeData data);
+        [LibraryImport("user32.dll")]
+        internal static partial int SetWindowCompositionAttribute(nint hwnd, ref WindowCompositionAttributeData data);
 
         [StructLayout(LayoutKind.Sequential)]
         internal struct WindowCompositionAttributeData
@@ -104,8 +95,8 @@ namespace XMeter.Windows
             DWMWCP_ROUNDSMALL = 3,
         }
 
-        [DllImport("dwmapi.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern long DwmSetWindowAttribute(nint hwnd,
+        [LibraryImport("dwmapi.dll", SetLastError = true)]
+        private static partial long DwmSetWindowAttribute(nint hwnd,
                                                     DWMWINDOWATTRIBUTE attribute,
                                                     ref DWM_WINDOW_CORNER_PREFERENCE pvAttribute,
                                                     uint cbAttribute);
@@ -169,21 +160,26 @@ namespace XMeter.Windows
         }
 
         #region uxtheme
-        [DllImport("uxtheme.dll", EntryPoint = "#98", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern uint GetImmersiveUserColorSetPreference(bool forceCheckRegistry, bool skipCheckOnFail);
+        [LibraryImport("uxtheme.dll", EntryPoint = "#98")]
+        [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
+        public static partial uint GetImmersiveUserColorSetPreference([MarshalAs(UnmanagedType.Bool)] bool forceCheckRegistry, [MarshalAs(UnmanagedType.Bool)] bool skipCheckOnFail);
 
-        [DllImport("uxtheme.dll", EntryPoint = "#94", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern uint GetImmersiveColorSetCount();
+        [LibraryImport("uxtheme.dll", EntryPoint = "#94")]
+        [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
+        public static partial uint GetImmersiveColorSetCount();
 
-        [DllImport("uxtheme.dll", EntryPoint = "#95", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern uint GetImmersiveColorFromColorSetEx(uint immersiveColorSet, uint immersiveColorType,
-            bool ignoreHighContrast, uint highContrastCacheMode);
+        [LibraryImport("uxtheme.dll", EntryPoint = "#95")]
+        [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
+        public static partial uint GetImmersiveColorFromColorSetEx(uint immersiveColorSet, uint immersiveColorType,
+            [MarshalAs(UnmanagedType.Bool)] bool ignoreHighContrast, uint highContrastCacheMode);
 
-        [DllImport("uxtheme.dll", EntryPoint = "#96", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern uint GetImmersiveColorTypeFromName(nint name);
+        [LibraryImport("uxtheme.dll", EntryPoint = "#96")]
+        [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
+        public static partial uint GetImmersiveColorTypeFromName(nint name);
 
-        [DllImport("uxtheme.dll", EntryPoint = "#100", CallingConvention = CallingConvention.StdCall, CharSet = CharSet.Auto)]
-        public static extern nint GetImmersiveColorNamedTypeByIndex(uint index);
+        [LibraryImport("uxtheme.dll", EntryPoint = "#100")]
+        [UnmanagedCallConv(CallConvs = [typeof(System.Runtime.CompilerServices.CallConvStdcall)])]
+        public static partial nint GetImmersiveColorNamedTypeByIndex(uint index);
         #endregion
     }
 }

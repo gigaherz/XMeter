@@ -79,7 +79,7 @@ namespace XMeter.Windows
                         colorSets.Add(new AccentColorSet(i, false));
                     }
 
-                    AllSets = colorSets.ToArray();
+                    AllSets = [.. colorSets];
 
                     return _allSets;
                 }
@@ -129,7 +129,7 @@ namespace XMeter.Windows
                 }
             }
 
-            public uint GetColorType(string colorName)
+            public static uint GetColorType(string colorName)
             {
                 var name = nint.Zero;
                 uint colorType;
@@ -168,7 +168,7 @@ namespace XMeter.Windows
             // HACK: GetAllColorNames collects the available color names by brute forcing the OS function.
             //   Since there is currently no known way to retrieve all possible color names,
             //   the method below just tries all indices from 0 to 0xFFF ignoring errors.
-            public List<string> GetAllColorNames()
+            public static List<string> GetAllColorNames()
             {
                 var allColorNames = new List<string>();
                 for (uint i = 0; i < 0xFFF; i++)
@@ -177,7 +177,7 @@ namespace XMeter.Windows
                     if (typeNamePtr == nint.Zero)
                         continue;
 
-                    var typeName = (nint)Marshal.PtrToStructure(typeNamePtr, typeof(nint));
+                    var typeName = Marshal.PtrToStructure<nint>(typeNamePtr);
                     allColorNames.Add(Marshal.PtrToStringUni(typeName));
                 }
 

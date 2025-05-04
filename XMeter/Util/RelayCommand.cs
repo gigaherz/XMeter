@@ -4,12 +4,11 @@ using System.Windows.Input;
 
 namespace XMeter.Util
 {
-    public class RelayCommand : ICommand
+    public class RelayCommand(Action<object> execute, Predicate<object> canExecute) : ICommand
     {
         #region Fields
 
-        private readonly Action<object> execute;
-        private readonly Predicate<object> canExecute;
+        private readonly Action<object> execute = execute ?? throw new ArgumentNullException(nameof(execute));
 
         #endregion // Fields
 
@@ -18,12 +17,6 @@ namespace XMeter.Util
         public RelayCommand(Action<object> execute)
             : this(execute, null)
         {
-        }
-
-        public RelayCommand(Action<object> execute, Predicate<object> canExecute)
-        {
-            this.execute = execute ?? throw new ArgumentNullException(nameof(execute));
-            this.canExecute = canExecute;
         }
 
         #endregion // Constructors
