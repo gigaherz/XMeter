@@ -1,15 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Management;
+﻿using System.Management;
 using System.Runtime.Versioning;
 using XMeter.Common;
-using static XMeter.Common.DataTracker;
 
 namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
     public class WMIDataSource : IDataSource
     {
+        public static IDataSource Construct()
+        {
+            return new WMIDataSource();
+        }
+
         private readonly ManagementObjectSearcher Searcher = new(
                 "SELECT Name, BytesReceivedPerSec, BytesSentPerSec, Timestamp_Sys100NS" +
                 " FROM Win32_PerfRawData_Tcpip_NetworkInterface");
@@ -28,9 +30,7 @@ namespace XMeter.Windows
             }
         }
 
-        internal static IDataSource Construct()
-        {
-            return new WMIDataSource();
-        }
+        private WMIDataSource() { }
+
     }
 }

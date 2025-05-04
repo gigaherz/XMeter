@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
 using System.Text;
+using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 
@@ -101,7 +102,7 @@ namespace XMeter.Windows
                                                     ref DWM_WINDOW_CORNER_PREFERENCE pvAttribute,
                                                     uint cbAttribute);
 
-        public static bool MakeEdgesRounded(MainWindow window)
+        public static bool MakeEdgesRounded(Window window)
         {
             var windowHelper = new WindowInteropHelper(window);
             windowHelper.EnsureHandle();
@@ -120,12 +121,12 @@ namespace XMeter.Windows
         }
 
 
-        internal static bool EnableBlur(MainWindow window, Color background)
+        internal static bool EnableBlur(Window window, Color background)
         {
             return EnableBlur(window, (uint)background.A << 24 | (uint)background.B << 16 | (uint)background.G << 8 | background.R);
         }
 
-        internal static bool EnableBlur(MainWindow window, uint backgroundColor)
+        internal static bool EnableBlur(Window window, uint backgroundColor)
         {
             var windowHelper = new WindowInteropHelper(window);
             windowHelper.EnsureHandle();

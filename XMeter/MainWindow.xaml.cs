@@ -6,13 +6,12 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
-using XMeter.Annotations;
 using XMeter.Common;
 using XMeter.Windows;
 
 namespace XMeter
 {
-    public partial class MainWindow : INotifyPropertyChanged
+    public partial class MainWindow : INotifyPropertyChanged, IFloatingWindow
     {
         private static readonly TimeSpan ShowAnimationDelay = TimeSpan.FromMilliseconds(150);
         private static readonly TimeSpan ShowAnimationDuration = TimeSpan.FromMilliseconds(50);
@@ -105,7 +104,7 @@ namespace XMeter
 
             InitializeComponent();
 
-            SettingsManager.Settings.ReadSettings();
+            PlatformImplementations.Settings.ReadSettings();
 
             if (OperatingSystem.IsWindows())
                 WindowsAccentColors.SetupAccentsUpdate(this);
@@ -200,7 +199,7 @@ namespace XMeter
 
         private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            SettingsManager.Settings.WriteSettings();
+            PlatformImplementations.Settings.WriteSettings();
 
             SpeedViewModel.Instance.UpdateTime();
         }

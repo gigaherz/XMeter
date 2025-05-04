@@ -2,15 +2,19 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Runtime.Versioning;
-using XMeter.Annotations;
 using XMeter.Common;
 
 namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
-    internal class WindowsRegistrySettings : ISettings
+    public class WindowsRegistrySettings : ISettings, INotifyPropertyChanged
 
     {
+        public static ISettings Construct()
+        {
+            return new WindowsRegistrySettings();
+        }
+
         private int _width;
         private int _height;
 
@@ -41,10 +45,12 @@ namespace XMeter.Windows
             }
         }
 
+        private WindowsRegistrySettings() { }
+
         public void ReadSettings()
         {
-            Width = (int)Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "PreferredWidth", SettingsManager.DefaultPreferredWidth);
-            Height = (int)Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "PreferredHeight", SettingsManager.DefaultPreferredHeight);
+            Width = (int)(Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "PreferredWidth", ISettings.DefaultPreferredWidth) ?? ISettings.DefaultPreferredWidth);
+            Height = (int)(Registry.GetValue("HKEY_CURRENT_USER\\Software\\XMeter", "PreferredHeight", ISettings.DefaultPreferredHeight) ?? ISettings.DefaultPreferredHeight);
         }
 
         public void WriteSettings()
@@ -53,17 +59,13 @@ namespace XMeter.Windows
             Registry.SetValue("HKEY_CURRENT_USER\\Software\\XMeter", "PreferredHeight", Height);
         }
 
-        public event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         [NotifyPropertyChangedInvocator]
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        internal static ISettings Create()
-        {
-            return new WindowsRegistrySettings();
-        }
     }
 }

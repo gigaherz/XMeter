@@ -1,30 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using XMeter.Windows;
+using XMeter.Common;
 
-namespace XMeter.Common
+namespace XMeter
 {
-    partial class DataTracker
+    public class DataTracker
     {
         public const double MaxSecondSpan = 3600;
 
         public static readonly DataTracker Instance = new();
 
-        public IDataSource dataSource = CreateDataSource();
-
-        public static IDataSource CreateDataSource()
-        {
-            if (OperatingSystem.IsWindows())
-            {
-                return WMIDataSource.Construct();
-            }
-            else
-            {
-                throw new NotImplementedException("Data parsing not implemented for platform " + RuntimeInformation.OSDescription);
-            }
-        }
+        public static IDataSource DataSource { get; private set; }
 
         private struct TimeEntry(DateTime timeStamp, ulong bytesSent, ulong bytesRecv)
         {
@@ -58,7 +45,7 @@ namespace XMeter.Common
         public void FetchData()
         {
             var unseen = new HashSet<string>(Adapters.Keys);
-            foreach (var (name, recv, sent, time) in dataSource.ReadData())
+            foreach (var (name, recv, sent, time) in DataSource.ReadData())
             {
                 if (!Adapters.TryGetValue(name, out var points))
                 {
@@ -144,7 +131,7 @@ namespace XMeter.Common
             return (accSentMax, accRecvMax, accSentMin, accRecvMin);
         }
 
-        internal (double, double) GetMaxSpeed()
+        public (double, double) GetMaxSpeed()
         {
             if (Adapters.Count == 0)
                 return (0, 0);
@@ -172,10 +159,5 @@ namespace XMeter.Common
 
             return (maxSent, maxRecv);
         }
-    }
-
-    public interface IDataSource
-    {
-        public IEnumerable<(string name, ulong recv, ulong sent, DateTime time)> ReadData();
     }
 }

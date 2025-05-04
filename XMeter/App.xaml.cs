@@ -11,13 +11,13 @@ namespace XMeter
     /// </summary>
     public partial class App : Application
     {
-        private TaskbarIcon notifyIcon;
-
         protected override void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
             Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
+
+            PlatformImplementations.Initialize();
 
             var contextMenu = new ContextMenu()
             {
@@ -25,19 +25,12 @@ namespace XMeter
             };
             contextMenu.Items.Add(new MenuItem() { Header = "Exit", Command = new RelayCommand(QuitCommand) });
 
-            notifyIcon = new TaskbarIcon()
-            {
-                DataContext = SpeedViewModel.Instance,
-                MenuActivation = H.NotifyIcon.Core.PopupActivationMode.RightClick,
-                NoLeftClickDelay = true,
-                PopupActivation = H.NotifyIcon.Core.PopupActivationMode.None,
-                LeftClickCommand = new RelayCommand(OpenMainWindow),
-                ContextMenu = contextMenu
-            };
+            SpeedViewModel.Instance.NotifyIcon = PlatformImplementations.NotificationIcon;
 
-            SpeedViewModel.Instance.NotifyIcon = notifyIcon;
-
-            notifyIcon.ForceCreate();
+            PlatformImplementations.NotificationIcon.DataContext = SpeedViewModel.Instance;
+            PlatformImplementations.NotificationIcon.LeftClickCommand = new RelayCommand(OpenMainWindow);
+            PlatformImplementations.NotificationIcon.ContextMenu = contextMenu;
+            PlatformImplementations.NotificationIcon.ForceCreate();
 
             SpeedViewModel.Instance.UpdateIcon();
         }
@@ -54,7 +47,7 @@ namespace XMeter
 
         protected override void OnExit(ExitEventArgs e)
         {
-            notifyIcon?.Dispose(); //the icon would clean up automatically, but this is cleaner
+            PlatformImplementations.NotificationIcon?.Dispose(); //the icon would clean up automatically, but this is cleaner
             base.OnExit(e);
         }
     }

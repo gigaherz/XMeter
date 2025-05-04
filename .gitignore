@@ -18,3 +18,7 @@
 /Screenshot.png
 /XMeter2.Setup/Debug
 /XMeter2.Setup/Release
+/XMeter.Common/bin
+/XMeter.Common/obj
+/XMeter.Windows/bin
+/XMeter.Windows/obj

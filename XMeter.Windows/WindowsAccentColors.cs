@@ -3,14 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
+using System.Windows;
 using System.Windows.Media;
+using XMeter.Common;
 
 namespace XMeter.Windows
 {
     [SupportedOSPlatform("windows")]
-    internal class WindowsAccentColors
+    public class WindowsAccentColors
     {
-        internal static void SetupAccentsUpdate(MainWindow mainWindow)
+        public static void SetupAccentsUpdate<T>(T mainWindow)
+            where T : Window, IFloatingWindow
         {
             [SupportedOSPlatform("windows")]
             void SystemEvents_UserPreferenceChanging(object sender, UserPreferenceChangingEventArgs e)
@@ -21,7 +24,8 @@ namespace XMeter.Windows
             SystemEvents.UserPreferenceChanging += SystemEvents_UserPreferenceChanging;
         }
 
-        public static void UpdateAccentColor(MainWindow mainWindow)
+        public static void UpdateAccentColor<T>(T mainWindow)
+            where T: Window, IFloatingWindow
         {
 #if false
             File.WriteAllLines(@"F:\Accents.txt", AccentColorSet.ActiveSet.GetAllColorNames().Select(s => {
@@ -59,8 +63,8 @@ namespace XMeter.Windows
         [SupportedOSPlatform("windows")]
         internal class AccentColorSet
         {
-            private static AccentColorSet[] _allSets;
-            private static AccentColorSet _activeSet;
+            private static AccentColorSet[]? _allSets;
+            private static AccentColorSet? _activeSet;
 
             private readonly uint _colorSet;
 
@@ -81,7 +85,7 @@ namespace XMeter.Windows
 
                     AllSets = [.. colorSets];
 
-                    return _allSets;
+                    return _allSets ?? throw new InvalidOperationException("Cannot query sets before initializing accent colors");
                 }
                 private set => _allSets = value;
             }
@@ -92,7 +96,7 @@ namespace XMeter.Windows
                 {
                     var activeSet = WindowsNatives.GetImmersiveUserColorSetPreference(false, false);
                     ActiveSet = AllSets[Math.Min(activeSet, AllSets.Length - 1)];
-                    return _activeSet;
+                    return _activeSet ?? throw new InvalidOperationException("Cannot query sets before initializing accent colors"); ;
                 }
                 private set
                 {
@@ -178,7 +182,7 @@ namespace XMeter.Windows
                         continue;
 
                     var typeName = Marshal.PtrToStructure<nint>(typeNamePtr);
-                    allColorNames.Add(Marshal.PtrToStringUni(typeName));
+                    allColorNames.Add(Marshal.PtrToStringUni(typeName) ?? ("Color"+i));
                 }
 
                 return allColorNames;

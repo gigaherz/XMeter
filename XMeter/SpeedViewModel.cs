@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Threading;
-using XMeter.Annotations;
 using XMeter.Common;
 using XMeter.Util;
 
@@ -96,7 +95,7 @@ namespace XMeter
 
         public double GraphWidth { get; set; }
 
-        public TaskbarIcon NotifyIcon { get; internal set; }
+        public INotificationIcon NotifyIcon { get; internal set; }
 
         public SpeedViewModel()
         {
