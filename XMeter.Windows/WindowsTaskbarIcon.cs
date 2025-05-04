@@ -13,7 +13,7 @@ namespace XMeter.Windows
 {
     public class WindowsTaskbarIcon : INotificationIcon
     {
-        public static INotificationIcon Construct()
+        public static INotificationIcon Create()
         {
             return new WindowsTaskbarIcon();
         }

@@ -10,7 +10,7 @@ namespace XMeter.Windows
     public class WindowsRegistrySettings : ISettings, INotifyPropertyChanged
 
     {
-        public static ISettings Construct()
+        public static ISettings Create()
         {
             return new WindowsRegistrySettings();
         }

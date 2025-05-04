@@ -11,8 +11,6 @@ namespace XMeter
 
         public static readonly DataTracker Instance = new();
 
-        public static IDataSource DataSource { get; private set; }
-
         private struct TimeEntry(DateTime timeStamp, ulong bytesSent, ulong bytesRecv)
         {
             public DateTime TimeStamp = timeStamp;
@@ -45,7 +43,7 @@ namespace XMeter
         public void FetchData()
         {
             var unseen = new HashSet<string>(Adapters.Keys);
-            foreach (var (name, recv, sent, time) in DataSource.ReadData())
+            foreach (var (name, recv, sent, time) in PlatformImplementations.DataSource.ReadData())
             {
                 if (!Adapters.TryGetValue(name, out var points))
                 {

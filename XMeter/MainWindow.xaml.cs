@@ -224,19 +224,19 @@ namespace XMeter
             var time2 = data.LastTime;
             //time2 = time2.Date.AddSeconds(Math.Floor(time2.TimeOfDay.TotalSeconds/timePerInterval)*timePerInterval);
 
-            if (time1 > time2)
+            if (time1 >= time2)
             {
                 return;
             }
 
-            if ((time2 - time1).TotalSeconds > (intervals * timePerInterval))
-            {
+            //if ((time2 - time1).TotalSeconds > (intervals * timePerInterval))
+            //{
                 time1 = time2.AddSeconds(-intervals * timePerInterval);
-            }
-            else
-            {
-                intervals = (int)Math.Floor((time2 - time1).TotalSeconds / timePerInterval);
-            }
+            //}
+            //else
+            //{
+            //    intervals = (int)Math.Floor((time2 - time1).TotalSeconds / timePerInterval);
+            //}
 
             double yy = 0.5 * Graph.ActualHeight;
 

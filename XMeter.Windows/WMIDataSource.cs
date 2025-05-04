@@ -7,7 +7,7 @@ namespace XMeter.Windows
     [SupportedOSPlatform("windows")]
     public class WMIDataSource : IDataSource
     {
-        public static IDataSource Construct()
+        public static IDataSource Create()
         {
             return new WMIDataSource();
         }
