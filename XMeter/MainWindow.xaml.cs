@@ -217,8 +217,9 @@ namespace XMeter
 
             var data = DataTracker.Instance;
 
-            int intervals = (int)(Graph.ActualWidth / 5);
-            double timePerInterval = 2;
+            double timePerInterval = 0.5;
+            double stepWidth = 2;
+            int intervals = (int)(Graph.ActualWidth / stepWidth);
 
             var time1 = data.FirstTime;
 
@@ -230,14 +231,19 @@ namespace XMeter
                 return;
             }
 
-            if ((time2-time1).TotalSeconds > (intervals * timePerInterval))
+            if ((time2 - time1).TotalSeconds > (intervals * timePerInterval))
             {
                 time1 = time2.AddSeconds(-intervals * timePerInterval);
+            }
+            else
+            {
+                intervals = (int)Math.Floor((time2 - time1).TotalSeconds / timePerInterval);
             }
 
             double yy = 0.5 * Graph.ActualHeight;
 
-            var (sendSpeedMax, recvSpeedMax) = data.GetMaxSpeedBetween(time1, time2);
+            var (sendSpeedMax, recvSpeedMax, _, _) 
+                = data.GetMaxMinSpeedBetween(time1, time2);
             if (sendSpeedMax > 0 || recvSpeedMax > 0)
             {
                 var sqUp = Math.Max(32, Math.Sqrt(sendSpeedMax));
@@ -247,8 +253,8 @@ namespace XMeter
                 var maxDown = max2 * recvSpeedMax / sqDown;
                 yy = sqDown * Graph.ActualHeight / max2;
 
-                BuildPolygon(data, time1, time2, intervals, maxUp, 255, 24, 32, true, p => p.Item1);
-                BuildPolygon(data, time1, time2, intervals, maxDown, 48, 48, 255, false, p => p.Item2);
+                BuildPolygon(data, time1, time2, intervals, maxUp, 255, 24, 32, true, p => (p.Item1, p.Item3));
+                BuildPolygon(data, time1, time2, intervals, maxDown, 48, 48, 255, false, p => (p.Item2, p.Item4));
             }
 
             var line = new Line
@@ -266,10 +272,13 @@ namespace XMeter
 
             GraphDown.Margin = new Thickness(0, 0, 0, Graph.ActualHeight - yy);
             GraphUp.Margin = new Thickness(0, yy, 0, 0);
+
+
+            (Application.Current as App).Model.GraphWidth = (time2 - time1).TotalSeconds;
         }
 
         private void BuildPolygon(DataTracker data, DateTime time1, DateTime time2, int intervals, double max, byte r, byte g, byte b, bool up,
-            Func<(double,double), double> fieldGetter)
+            Func<(double,double,double,double), (double,double)> fieldGetter)
         {
             if (intervals == 0 || time1 >= time2)
                 return;
@@ -277,8 +286,10 @@ namespace XMeter
             var bottom = Graph.ActualHeight;
             var right = Graph.ActualWidth;
 
-            var polygon = new Polyline();
-            polygon.Points.Add(new Point(0, up ? bottom : 0));
+            var polygonMax = new Polyline();
+            var polygonMin = new Polyline();
+            polygonMax.Points.Add(new Point(0, up ? bottom : 0));
+            polygonMin.Points.Add(new Point(0, up ? bottom : 0));
             for (int i=0;i<intervals;i++)
             {
                 double dt1 = i / (double)intervals;
@@ -290,19 +301,31 @@ namespace XMeter
                 var x1 = dt1 * right;
                 var x2 = dt2 * right;
 
-                var values = data.GetMaxSpeedBetween(t1, t2);
-                var speed = fieldGetter(values);
-                var yy = speed * bottom / max;
+                var values = data.GetMaxMinSpeedBetween(t1, t2);
+                var speeds = fieldGetter(values);
+                var maxSpeed = speeds.Item1;
+                var minSpeed = speeds.Item2;
+                var yyMax = maxSpeed * bottom / max;
+                var yyMin = minSpeed * bottom / max;
 
-                polygon.Points.Add(new Point(x1, up ? bottom - yy : yy));
-                polygon.Points.Add(new Point(x2, up ? bottom - yy : yy));
+                polygonMax.Points.Add(new Point(x1, up ? bottom - yyMax : yyMax));
+                polygonMax.Points.Add(new Point(x2, up ? bottom - yyMax : yyMax));
+
+                polygonMin.Points.Add(new Point(x1, up ? bottom - yyMin : yyMin));
+                polygonMin.Points.Add(new Point(x2, up ? bottom - yyMin : yyMin));
             }
-            polygon.Points.Add(new Point(right, up ? bottom : 0));
+            polygonMax.Points.Add(new Point(right, up ? bottom : 0));
+            polygonMin.Points.Add(new Point(right, up ? bottom : 0));
 
-            polygon.Stroke = new SolidColorBrush(Color.FromArgb(160, r, g, b));
-            polygon.StrokeThickness = 2;
-            polygon.Fill = new SolidColorBrush(Color.FromArgb(64, r, g, b));
-            Graph.Children.Add(polygon);
+            polygonMax.Stroke = new SolidColorBrush(Color.FromArgb(160, r, g, b));
+            polygonMax.StrokeThickness = 2;
+            polygonMax.Fill = new SolidColorBrush(Color.FromArgb(64, r, g, b));
+            Graph.Children.Add(polygonMax);
+
+            polygonMin.Stroke = new SolidColorBrush(Color.FromArgb(224, r, g, b));
+            polygonMin.StrokeThickness = 2;
+            polygonMin.Fill = new SolidColorBrush(Color.FromArgb(160, r, g, b));
+            Graph.Children.Add(polygonMin);
         }
 
         private DateTime Lerp(DateTime time1, DateTime time2, double dt)

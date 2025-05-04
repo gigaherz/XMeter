@@ -39,7 +39,7 @@ namespace XMeter.Common
                 BytesRecv = bytesRecv;
             }
 
-            internal void Deconstruct(out DateTime time, out ulong sent, out ulong recv)
+            internal readonly void Deconstruct(out DateTime time, out ulong sent, out ulong recv)
             {
                 time = TimeStamp;
                 sent = BytesSent;
@@ -91,13 +91,16 @@ namespace XMeter.Common
                 Adapters.Remove(name);
         }
 
-        public (double speedSend, double speedRecv) GetMaxSpeedBetween(DateTime startTime, DateTime endTime)
+        public (double maxSend, double maxRecv, double minSend, double minRecv)
+            GetMaxMinSpeedBetween(DateTime startTime, DateTime endTime)
         {
             if (Adapters.Count == 0 || startTime >= endTime)
-                return (0, 0);
+                return (0, 0, 0, 0);
 
-            double accSent = 0;
-            double accRecv = 0;
+            double accSentMax= 0;
+            double accRecvMax= 0;
+            double accSentMin = 0;
+            double accRecvMin = 0;
             foreach (var points in Adapters.Values)
             {
                 if (points.Count < 2)
@@ -130,6 +133,9 @@ namespace XMeter.Common
 #else
                 double maxSent = 0;
                 double maxRecv = 0;
+                double minSent = double.MaxValue;
+                double minRecv = double.MaxValue;
+                bool hasData = false;
                 for (var time = start; time != endNext; time = time.Next)
                 {
                     var dt = (time.Next.Value.TimeStamp - time.Value.TimeStamp).TotalSeconds;
@@ -141,14 +147,22 @@ namespace XMeter.Common
 
                     maxSent = Math.Max(maxSent, ss);
                     maxRecv = Math.Max(maxRecv, sr);
+                    minSent = Math.Min(minSent, ss);
+                    minRecv = Math.Min(minRecv, sr);
+                    hasData=true;
                 }
 
-                accSent += maxSent;
-                accRecv += maxRecv;
+                if (hasData)
+                {
+                    accSentMax += maxSent;
+                    accRecvMax += maxRecv;
+                    accSentMin += minSent;
+                    accRecvMin += minRecv;
+                }
 #endif
             }
 
-            return (accSent, accRecv);
+            return (accSentMax, accRecvMax, accSentMin, accRecvMin);
         }
 
         internal (double, double) GetMaxSpeed()

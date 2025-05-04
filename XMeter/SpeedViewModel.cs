@@ -137,13 +137,13 @@ namespace XMeter
 
             var start = end.AddSeconds(-1);
 
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(start, end);
-            UpSpeed = sendSpeed;
-            DownSpeed = recvSpeed;
+            var (sendMax, recvMax, _, _) = DataTracker.Instance.GetMaxMinSpeedBetween(start, end);
+            UpSpeed = sendMax;
+            DownSpeed = recvMax;
 
-            var (sendMax, recvMax) = DataTracker.Instance.GetMaxSpeed();
-            UpSpeedMax = sendMax;
-            DownSpeedMax = recvMax;
+            var (sendMaxTotal, recvMaxTotal) = DataTracker.Instance.GetMaxSpeed();
+            UpSpeedMax = sendMaxTotal;
+            DownSpeedMax = recvMaxTotal;
 
             NotifyIcon.ToolTipText = USizeConverter.FormatUSize(_upSpeed) + " ◤◢ " + USizeConverter.FormatUSize(_downSpeed);
         }
@@ -163,9 +163,9 @@ namespace XMeter
 
         public void UpdateIcon()
         {
-            var (sendSpeed, recvSpeed) = DataTracker.Instance.GetMaxSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
-            var sendActivity = sendSpeed > 0;
-            var recvActivity = recvSpeed > 0;
+            var (sendMax, recvMax, _, _) = DataTracker.Instance.GetMaxMinSpeedBetween(DateTime.Now.AddSeconds(-1), DateTime.Now);
+            var sendActivity = sendMax > 0;
+            var recvActivity = recvMax > 0;
 
             if (sendActivity && recvActivity)
             {
