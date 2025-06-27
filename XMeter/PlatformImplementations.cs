@@ -9,7 +9,7 @@ namespace XMeter
     public class PlatformImplementations
     {
         private static readonly string WindowsAssemblyName = "XMeter.Windows";
-        private static readonly string WindowsImplementationClassName = "WindowsImplementation";
+        private static readonly string WindowsImplementationClassName = "XMeter.Windows.WindowsImplementation";
 
         public static IDataSource DataSource { get; private set; }
 

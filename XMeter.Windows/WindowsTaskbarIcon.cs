@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Runtime.Versioning;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
@@ -11,6 +12,7 @@ using XMeter.Common;
 
 namespace XMeter.Windows
 {
+    [SupportedOSPlatform("windows5.1.2600")]
     public class WindowsTaskbarIcon : INotificationIcon
     {
         public static INotificationIcon Create()
